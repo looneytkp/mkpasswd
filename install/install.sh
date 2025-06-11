@@ -4,23 +4,31 @@ set -e
 INSTALL_DIR="$HOME/.mkpasswd"
 REPO_URL="https://github.com/looneytkp/mkpasswd.git"
 
-# Function to install git if missing
-install_git() {
-    echo "[*] 'git' not found. Attempting to install..."
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update && sudo apt-get install -y git
-    elif command -v yum >/dev/null; then
-        sudo yum install -y git
-    elif command -v brew >/dev/null; then
-        brew install git
-    else
-        echo "[X] Cannot install git automatically. Please install git and rerun."
-        exit 1
-    fi
+# Function for Termux environment
+install_termux_deps() {
+    echo "[*] Detected Termux environment."
+    pkg install -y git python
+    pip install --user python-gnupg
 }
 
-# Function to install Python if missing
-install_python() {
+# Function for standard Linux/Mac
+install_linux_deps() {
+    # Git
+    if ! command -v git >/dev/null; then
+        echo "[*] 'git' not found. Attempting to install..."
+        if command -v apt-get >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y git
+        elif command -v yum >/dev/null; then
+            sudo yum install -y git
+        elif command -v brew >/dev/null; then
+            brew install git
+        else
+            echo "[X] Cannot install git automatically. Please install git and rerun."
+            exit 1
+        fi
+    fi
+
+    # Python
     if ! command -v python3 >/dev/null; then
         echo "[*] Python 3 not found. Attempting to install..."
         if command -v apt-get >/dev/null; then
@@ -34,32 +42,20 @@ install_python() {
             exit 1
         fi
     fi
-}
 
-# Function to install python-gnupg if missing
-install_python_gnupg() {
+    # python-gnupg
     python3 -c "import gnupg" 2>/dev/null || {
         echo "[*] Installing python-gnupg..."
         python3 -m pip install --user python-gnupg
     }
 }
 
-# Git check and install
-if ! command -v git >/dev/null; then
-    install_git
+# Detect Termux (Android)
+if grep -qi termux <<< "$PREFIX"; then
+    install_termux_deps
 else
-    echo "[*] 'git' found. Checking for updates..."
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update && sudo apt-get install --only-upgrade -y git
-    elif command -v yum >/dev/null; then
-        sudo yum update -y git
-    elif command -v brew >/dev/null; then
-        brew upgrade git
-    fi
+    install_linux_deps
 fi
-
-install_python
-install_python_gnupg
 
 # Install or update mkpasswd
 if [ -d "$INSTALL_DIR/.git" ]; then
