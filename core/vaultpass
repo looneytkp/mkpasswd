@@ -39,8 +39,11 @@ setup_passphrase() {
     echo "[*] First run: You must set a master passphrase."
     echo "  - This passphrase protects all your saved passwords."
     echo "  - If you forget it, your passwords cannot be recovered."
+
+    mkdir -p "$SYSTEM_DIR"
     read -p "Enter a passphrase hint (for your eyes only, can be blank): " hint
     echo "$hint" > "$HINT_FILE"
+
     log_action "Set passphrase hint"
     echo "[*] Passphrase hint saved."
 }
