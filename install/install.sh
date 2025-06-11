@@ -1,95 +1,81 @@
 #!/bin/bash
-set -e
 
 INSTALL_DIR="$HOME/.vaultpass"
-BIN_PATH="$HOME/.local/bin/vaultpass"
 REPO_URL="https://github.com/looneytkp/vaultpass.git"
 
-# --- Remove any old install ---
+echo "[*] Installing vaultpass..."
+
+# Remove old install if it exists
 if [ -d "$INSTALL_DIR" ]; then
-    echo "[*] Removing previous vaultpass install at $INSTALL_DIR..."
+    echo "[*] Removing old installation..."
     rm -rf "$INSTALL_DIR"
 fi
-if [ -L "$BIN_PATH" ]; then
-    echo "[*] Removing old vaultpass symlink at $BIN_PATH..."
-    rm -f "$BIN_PATH"
-fi
 
-install_deps() {
-    # Termux (Android)
-    if [ -n "$PREFIX" ] && grep -qi termux <<< "$PREFIX"; then
-        echo "[*] Detected Termux (Android)."
-        pkg install -y git python
-        pip install --user python-gnupg
-        return
-    fi
-
-    # macOS
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "[*] Detected macOS."
-        if ! command -v brew >/dev/null; then
-            echo "[X] Homebrew not found. Please install Homebrew and rerun."
-            exit 1
-        fi
-        brew install git python
-        python3 -m pip install --user python-gnupg
-        return
-    fi
-
-    # Standard Linux distros
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y git python3 python3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v dnf >/dev/null; then
-        sudo dnf install -y git python3 python3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v yum >/dev/null; then
-        sudo yum install -y git python3 python3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v pacman >/dev/null; then
-        sudo pacman -Sy --noconfirm git python python-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v apk >/dev/null; then
-        sudo apk add git python3 py3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v zypper >/dev/null; then
-        sudo zypper install -y git python3 python3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v xbps-install >/dev/null; then
-        sudo xbps-install -Sy git python3 python3-pip
-        python3 -m pip install --user python-gnupg
-    elif command -v eopkg >/dev/null; then
-        sudo eopkg install -y git python3 python3-pip
-        python3 -m pip install --user python-gnupg
+# Check if git is installed
+if ! command -v git &>/dev/null; then
+    echo "[!] git not found. Installing git..."
+    if [ -x "$(command -v pkg)" ]; then
+        pkg install -y git
+    elif [ -x "$(command -v apt-get)" ]; then
+        sudo apt-get update && sudo apt-get install -y git
+    elif [ -x "$(command -v dnf)" ]; then
+        sudo dnf install -y git
+    elif [ -x "$(command -v pacman)" ]; then
+        sudo pacman -Sy --noconfirm git
     else
-        echo "[X] Unsupported Linux distribution. Please install git, python3, and python-gnupg manually."
+        echo "[!] Package manager not supported. Please install git manually."
         exit 1
     fi
-}
+fi
 
-install_deps
+# Check if Python is installed
+if ! command -v python3 &>/dev/null; then
+    echo "[!] Python 3 not found. Installing..."
+    if [ -x "$(command -v pkg)" ]; then
+        pkg install -y python
+    elif [ -x "$(command -v apt-get)" ]; then
+        sudo apt-get update && sudo apt-get install -y python3
+    elif [ -x "$(command -v dnf)" ]; then
+        sudo dnf install -y python3
+    elif [ -x "$(command -v pacman)" ]; then
+        sudo pacman -Sy --noconfirm python
+    else
+        echo "[!] Package manager not supported. Please install Python manually."
+        exit 1
+    fi
+fi
 
-# Install or update vaultpass
-echo "[*] Downloading vaultpass files from GitHub..."
-git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
-echo "[✔] vaultpass installed successfully!"
+# Install python-gnupg
+pip3 install --user python-gnupg &>/dev/null
+
+# Clone the repo
+git clone "$REPO_URL" "$INSTALL_DIR"
 
 # Make the script executable and add to PATH
 chmod +x "$INSTALL_DIR/core/vaultpass"
 mkdir -p "$HOME/.local/bin"
 ln -sf "$INSTALL_DIR/core/vaultpass" "$HOME/.local/bin/vaultpass"
 
-# Ensure ~/.local/bin is in PATH at the start
-SHELL_RC="$HOME/.bashrc"
+# Ensure ~/.local/bin is in PATH
+SHELL_RC=""
 if [ -n "$ZSH_VERSION" ]; then
     SHELL_RC="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_RC="$HOME/.bashrc"
+elif [ -f "$HOME/.profile" ]; then
+    SHELL_RC="$HOME/.profile"
+else
+    SHELL_RC="$HOME/.bashrc"
 fi
+
 if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC"; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
     echo "[*] Added ~/.local/bin to PATH in $SHELL_RC"
 fi
-. "$SHELL_RC"
 
-echo "Type 'vaultpass -h' to get started."
-exit 0
+# Reload shell config or fallback
+source "$SHELL_RC" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
+
+echo ""
+echo "[✔] vaultpass is installed and ready!"
+echo "You can now type 'vaultpass' from anywhere in your terminal."
