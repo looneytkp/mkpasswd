@@ -1,6 +1,6 @@
 #!/bin/bash
 
-vaultpass - Interactive Password Manager (v1.4+)
+#vaultpass - Interactive Password Manager (v1.4+)
 
 set -e
 
