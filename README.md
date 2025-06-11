@@ -24,10 +24,11 @@ FEATURES
 INSTALLATION
 
 Linux, macOS, WSL, or Git Bash:
+
 ```bash <(curl -fsSL https://raw.githubusercontent.com/looneytkp/mkpasswd/main/install/install.sh)```
 
 Windows (PowerShell):
-irm https://raw.githubusercontent.com/looneytkp/mkpasswd/main/install/install.ps1 | iex
+```irm https://raw.githubusercontent.com/looneytkp/mkpasswd/main/install/install.ps1 | iex```
 
 ---
 
