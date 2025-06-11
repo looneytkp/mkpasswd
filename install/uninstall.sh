@@ -47,11 +47,11 @@ if command -v python3 >/dev/null; then
   read -p "Do you want to uninstall python3 as well? (y/N): " un_py
   if [[ "$un_py" =~ ^[Yy]$ ]]; then
     if command -v apt-get >/dev/null; then
-      sudo apt-get remove -y python3
+      sudo apt-get remove -y python3 python3-pip
     elif command -v yum >/dev/null; then
-      sudo yum remove -y python3
+      sudo yum remove -y python3 python3-pip
     elif command -v brew >/dev/null; then
-      brew uninstall python3
+      brew uninstall python
     else
       echo "[!] Cannot uninstall python3 automatically. Please uninstall it manually."
     fi
