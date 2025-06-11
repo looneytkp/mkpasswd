@@ -12,43 +12,49 @@ elif [ -f "$HOME/.profile" ]; then
     SHELL_RC="$HOME/.profile"
 fi
 
+function install_git() {
+    echo "[*] Git not found. Installing..."
+    if command -v pkg &>/dev/null; then pkg install -y git
+    elif command -v apt-get &>/dev/null; then sudo apt-get install -y git
+    elif command -v dnf &>/dev/null; then sudo dnf install -y git
+    elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm git
+    else echo "[!] No supported package manager for Git."; exit 1
+    fi
+}
+
+function install_python() {
+    echo "[*] Python not found. Installing..."
+    if command -v pkg &>/dev/null; then pkg install -y python
+    elif command -v apt-get &>/dev/null; then sudo apt-get install -y python3
+    elif command -v dnf &>/dev/null; then sudo dnf install -y python3
+    elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm python
+    else echo "[!] No supported package manager for Python."; exit 1
+    fi
+}
+
+function update_git_python() {
+    echo "[*] Updating Git and Python..."
+    if command -v pkg &>/dev/null; then pkg upgrade -y git python
+    elif command -v apt-get &>/dev/null; then sudo apt-get install --only-upgrade -y git python3
+    elif command -v dnf &>/dev/null; then sudo dnf upgrade -y git python3
+    elif command -v pacman &>/dev/null; then sudo pacman -Syu --noconfirm git python
+    fi
+}
+
 function install_vaultpass() {
     echo "[*] Installing vaultpass..."
 
-    # Ensure Git
-    if ! command -v git &>/dev/null; then
-        echo "[*] Installing git..."
-        if command -v pkg &>/dev/null; then pkg install -y git
-        elif command -v apt-get &>/dev/null; then sudo apt-get install -y git
-        elif command -v dnf &>/dev/null; then sudo dnf install -y git
-        elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm git
-        else echo "[!] No supported package manager"; exit 1
-        fi
-    fi
+    command -v git &>/dev/null || install_git
+    command -v python3 &>/dev/null || install_python
 
-    # Ensure Python
-    if ! command -v python3 &>/dev/null; then
-        echo "[*] Installing python3..."
-        if command -v pkg &>/dev/null; then pkg install -y python
-        elif command -v apt-get &>/dev/null; then sudo apt-get install -y python3
-        elif command -v dnf &>/dev/null; then sudo dnf install -y python3
-        elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm python
-        else echo "[!] No supported package manager"; exit 1
-        fi
-    fi
-
-    # Install Python dependency
     pip3 install --user python-gnupg &>/dev/null
 
-    # Clone repo
     git clone "$REPO_URL" "$INSTALL_DIR"
 
-    # Set permissions and link binary
     chmod +x "$INSTALL_DIR/core/vaultpass"
     mkdir -p "$HOME/.local/bin"
     ln -sf "$INSTALL_DIR/core/vaultpass" "$BIN_PATH"
 
-    # Ensure path
     if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC"; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
         echo "[*] PATH updated in $SHELL_RC"
@@ -93,7 +99,9 @@ function main_menu() {
 
         case "$option" in
             1)
-                uninstall_vaultpass
+                update_git_python
+                rm -f "$BIN_PATH"
+                rm -rf "$INSTALL_DIR"
                 install_vaultpass
                 ;;
             2)
