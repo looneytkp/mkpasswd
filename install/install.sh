@@ -1,79 +1,76 @@
-#!/bin/bash
-set -e
+# install.ps1 - Smart mkpasswd Windows Installer
 
-INSTALL_DIR="$HOME/.mkpasswd"
-REPO_URL="https://github.com/looneytkp/mkpasswd.git"
-TMP_DIR="$(mktemp -d)"
+Write-Host "[*] Installing mkpasswd for Windows..." -ForegroundColor Cyan
 
-# Function to install git if missing
-install_git() {
-    echo "[*] 'git' not found. Attempting to install..."
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update && sudo apt-get install -y git
-    elif command -v yum >/dev/null; then
-        sudo yum install -y git
-    elif command -v brew >/dev/null; then
-        brew install git
-    else
-        echo "[X] Cannot install git automatically. Please install git and rerun."
-        exit 1
-    fi
+$installDir = "$env:USERPROFILE\.mkpasswd"
+$coreDir = "$installDir\core"
+$systemDir = "$installDir\system"
+$backupDir = "$installDir\backup"
+$remoteDir = "$installDir\remote"
+$tmpDir = Join-Path $env:TEMP "mkpasswd_tmp_$(Get-Random)"
+
+$repoUrl = "https://github.com/looneytkp/mkpasswd.git"
+
+function Install-Git {
+    Write-Host "[*] 'git' not found. Downloading and installing Git for Windows..." -ForegroundColor Yellow
+    $gitInstaller = "$env:TEMP\Git-Setup.exe"
+    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/latest/download/Git-2.44.0-64-bit.exe" -OutFile $gitInstaller
+    Start-Process -Wait -FilePath $gitInstaller -ArgumentList "/VERYSILENT", "/NORESTART"
+    Remove-Item $gitInstaller
+}
+
+function Update-Git {
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Host "[*] Updating git with winget..."
+        winget upgrade --id Git.Git -e --accept-package-agreements --accept-source-agreements
+    } else {
+        Write-Host "[*] winget not available. Please update git manually if needed."
+    }
 }
 
 # Check for git
-if ! command -v git >/dev/null; then
-    install_git
-else
-    echo "[*] 'git' found. Checking for updates..."
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update && sudo apt-get install --only-upgrade -y git
-    elif command -v yum >/dev/null; then
-        sudo yum update -y git
-    elif command -v brew >/dev/null; then
-        brew upgrade git
-    fi
-fi
+if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
+    Install-Git
+} else {
+    Write-Host "[*] 'git' found. Checking for updates..."
+    Update-Git
+}
 
-echo "[*] Downloading mkpasswd files from GitHub..."
-git clone --depth 1 "$REPO_URL" "$TMP_DIR"
+Write-Host "[*] Downloading mkpasswd files from GitHub..."
+git clone --depth 1 $repoUrl $tmpDir
 
-echo "[*] Installing mkpasswd..."
-mkdir -p "$INSTALL_DIR"
-cp -r "$TMP_DIR/core" "$INSTALL_DIR/"
-cp -r "$TMP_DIR/install" "$INSTALL_DIR/"
-cp -r "$TMP_DIR/system" "$INSTALL_DIR/" 2>/dev/null || true
-cp -r "$TMP_DIR/backup" "$INSTALL_DIR/" 2>/dev/null || true
-cp -r "$TMP_DIR/remote" "$INSTALL_DIR/" 2>/dev/null || true
-cp "$TMP_DIR/README.md" "$INSTALL_DIR/" 2>/dev/null || true
+# Prepare directories
+New-Item -ItemType Directory -Force -Path $coreDir | Out-Null
+New-Item -ItemType Directory -Force -Path $systemDir | Out-Null
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+New-Item -ItemType Directory -Force -Path $remoteDir | Out-Null
+
+# Copy files
+Copy-Item "$tmpDir\core\*" $coreDir -Recurse -Force
+Copy-Item "$tmpDir\install\*" "$installDir\install" -Recurse -Force
+Copy-Item "$tmpDir\system\*" $systemDir -Recurse -Force
+Copy-Item "$tmpDir\backup\*" $backupDir -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item "$tmpDir\remote\*" $remoteDir -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item "$tmpDir\README.md" $installDir -Force
 
 # System files
-touch "$INSTALL_DIR/system/passphrase_hint.txt"
-touch "$INSTALL_DIR/system/passwords.gpg"
-touch "$INSTALL_DIR/system/mkpasswd.log"
-echo "1.3" > "$INSTALL_DIR/system/version.txt"
+$versionPath = "$systemDir\version.txt"
+$hintPath = "$systemDir\passphrase_hint.txt"
+$passwordsPath = "$systemDir\passwords.gpg"
+$logPath = "$systemDir\mkpasswd.log"
+if (!(Test-Path $versionPath)) { "1.3" | Set-Content $versionPath }
+if (!(Test-Path $hintPath)) { "" | Set-Content $hintPath }
+if (!(Test-Path $passwordsPath)) { "" | Set-Content $passwordsPath }
+if (!(Test-Path $logPath)) { "" | Set-Content $logPath }
 
-# Python check
-if ! command -v python3 >/dev/null; then
-  echo "[!] Python 3 is required. Please install it and rerun this installer."
-  exit 1
-fi
+# Create a launcher (mkpasswd.bat) in WindowsApps for global access
+$binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
+if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
+$launcherContent = "@echo off`npython `"%USERPROFILE%\.mkpasswd\core\mkpasswd`" %*"
+Set-Content -Path "$binDir\mkpasswd.bat" -Value $launcherContent -Encoding ASCII
 
-# GPG check (optional)
-if ! command -v gpg >/dev/null; then
-  echo "[!] GPG not found. Backups will not be encrypted. (Install gpg if you want encryption)"
-fi
+# Cleanup
+Remove-Item $tmpDir -Recurse -Force
 
-# Make the script executable and add to PATH
-chmod +x "$INSTALL_DIR/core/mkpasswd"
-mkdir -p "$HOME/.local/bin"
-ln -sf "$INSTALL_DIR/core/mkpasswd" "$HOME/.local/bin/mkpasswd"
-if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-  echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-
-rm -rf "$TMP_DIR"
-
-echo "[✔] mkpasswd installed successfully!"
-echo "Type 'mkpasswd -h' to get started."
-exit 0
+Write-Host "[✔] mkpasswd installed successfully!"
+Write-Host "Open a new terminal (CMD or PowerShell) and run: mkpasswd -h" -ForegroundColor Green
