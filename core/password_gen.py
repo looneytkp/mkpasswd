@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-password_gen.py - Password generator for mkpasswd
+password_gen.py - Password generator for vaultpass
 Usage: password_gen.py [short|long]
 """
 
