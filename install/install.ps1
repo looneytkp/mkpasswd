@@ -1,14 +1,8 @@
-# install.ps1 - Smart mkpasswd Windows Installer
+# install.ps1 - Smart mkpasswd Windows Installer v1.4
 
-Write-Host "[*] Installing mkpasswd for Windows..." -ForegroundColor Cyan
+Write-Host "[*] Installing/updating mkpasswd for Windows..." -ForegroundColor Cyan
 
 $installDir = "$env:USERPROFILE\.mkpasswd"
-$coreDir = "$installDir\core"
-$systemDir = "$installDir\system"
-$backupDir = "$installDir\backup"
-$remoteDir = "$installDir\remote"
-$tmpDir = Join-Path $env:TEMP "mkpasswd_tmp_$(Get-Random)"
-
 $repoUrl = "https://github.com/looneytkp/mkpasswd.git"
 
 function Install-Git {
@@ -36,32 +30,31 @@ if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
     Update-Git
 }
 
-Write-Host "[*] Downloading mkpasswd files from GitHub..."
-git clone --depth 1 $repoUrl $tmpDir
-
-# Prepare directories
-New-Item -ItemType Directory -Force -Path $coreDir | Out-Null
-New-Item -ItemType Directory -Force -Path $systemDir | Out-Null
-New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
-New-Item -ItemType Directory -Force -Path $remoteDir | Out-Null
-
-# Copy files
-Copy-Item "$tmpDir\core\*" $coreDir -Recurse -Force
-Copy-Item "$tmpDir\install\*" "$installDir\install" -Recurse -Force
-Copy-Item "$tmpDir\system\*" $systemDir -Recurse -Force
-Copy-Item "$tmpDir\backup\*" $backupDir -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item "$tmpDir\remote\*" $remoteDir -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item "$tmpDir\README.md" $installDir -Force
-
-# System files
-$versionPath = "$systemDir\version.txt"
-$hintPath = "$systemDir\passphrase_hint.txt"
-$passwordsPath = "$systemDir\passwords.gpg"
-$logPath = "$systemDir\mkpasswd.log"
-if (!(Test-Path $versionPath)) { "1.3" | Set-Content $versionPath }
-if (!(Test-Path $hintPath)) { "" | Set-Content $hintPath }
-if (!(Test-Path $passwordsPath)) { "" | Set-Content $passwordsPath }
-if (!(Test-Path $logPath)) { "" | Set-Content $logPath }
+# Install or update mkpasswd
+if (Test-Path "$installDir\.git") {
+    Write-Host "[*] mkpasswd already installed. Checking for updates..."
+    Set-Location $installDir
+    git fetch origin main | Out-Null
+    $local = git rev-parse @
+    $remote = git rev-parse @{u}
+    if ($local -ne $remote) {
+        Write-Host "[!] New version available."
+        git log --oneline HEAD..origin/main
+        $answer = Read-Host "Do you want to update now? (Y/n)"
+        if ($answer -eq "Y" -or $answer -eq "y" -or $answer -eq "") {
+            git pull origin main
+            Write-Host "[✔] mkpasswd updated!"
+        } else {
+            Write-Host "Update cancelled."
+        }
+    } else {
+        Write-Host "[*] mkpasswd is already up to date."
+    }
+} else {
+    Write-Host "[*] Downloading mkpasswd files from GitHub..."
+    git clone --depth 1 $repoUrl $installDir
+    Write-Host "[✔] mkpasswd installed successfully!"
+}
 
 # Create a launcher (mkpasswd.bat) in WindowsApps for global access
 $binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
@@ -69,8 +62,4 @@ if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | 
 $launcherContent = "@echo off`npython `"%USERPROFILE%\.mkpasswd\core\mkpasswd`" %*"
 Set-Content -Path "$binDir\mkpasswd.bat" -Value $launcherContent -Encoding ASCII
 
-# Cleanup
-Remove-Item $tmpDir -Recurse -Force
-
-Write-Host "[✔] mkpasswd installed successfully!"
 Write-Host "Open a new terminal (CMD or PowerShell) and run: mkpasswd -h" -ForegroundColor Green
