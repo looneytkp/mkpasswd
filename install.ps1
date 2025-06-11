@@ -1,1 +1,1 @@
-# install.ps1 - PowerShell installer
+# install.ps1 placeholder

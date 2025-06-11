@@ -1,1 +1,1 @@
-# password_gen.py - Placeholder password generator
+# password_gen.py placeholder

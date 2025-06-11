@@ -1,1 +1,1 @@
-# mkpasswd.ps1 - PowerShell wrapper
+# mkpasswd.ps1 placeholder

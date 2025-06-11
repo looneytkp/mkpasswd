@@ -1,1 +1,1 @@
-# uninstall.ps1 - PowerShell uninstaller
+# uninstall.ps1 placeholder
