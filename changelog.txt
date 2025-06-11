@@ -1,24 +1,33 @@
-v1.3 - June 2025
-- Added backup/ directory with support for multiple backups
-- Optional GPG encryption for backups (prompted on backup/restore)
-- Logging of all actions to mkpasswd.log
-- Username/email can be updated separately from password
-- Multi-ID support for duplicate IDs (append _n)
-- Improved uninstall/restore flow for backup detection
-- Expanded help page
-- Safety checks and user prompts improved
-- More robust file checks and error messages
+v1.4
+- Switched update/check system to pure git (no more version.txt)
+- Added --update CLI flag to mkpasswd (Bash & PowerShell)
+- Integrated vault.py and password_gen.py for encryption & password gen
+- Cleaned up code, help, and multi-ID/user features
 
-v1.2 - June 2025
+v1.3
+- Added logging of all actions
+- Multi-ID support for duplicate IDs
+- Username/email now saved with each password
+- Update username/email feature for any entry
+- Required/checked all vault files at launch
+- Improved uninstall with backup/restore option
+
+v1.2
 - Removed Dropbox backup, restore, and token features
-- Simplified the install footprint
+- Simplified install footprint
 - Reduced dependencies and API calls
 
-v1.1 - June 2025
-- Fixed Windows install issues
-- Added changelog system
-- Added passphrase hint support
-- Added file checks + update prompt
-- Removed Dropbox backup
-- Multiple passwords per ID
-- Username/email on password save
+v1.1
+- Full cross-platform folder structure
+- Universal install/uninstall scripts (Bash + PowerShell)
+- Basic backup and restore
+- Weekly auto-update check
+- Logging and action audit log
+- Help and changelog commands
+
+v1.0
+- First public release
+- Interactive password generator
+- Basic vault save/search/list/delete
+- Basic backup and restore
+- Linux and Windows support
