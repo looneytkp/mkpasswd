@@ -1,31 +1,23 @@
 #!/usr/bin/env python3
 """
-password_gen.py - mkpasswd secure password generator
-Author: looneytkp
+password_gen.py - Password generator for mkpasswd
+Usage: password_gen.py [short|long]
 """
 
 import sys
-import string
 import secrets
+import string
 
-def generate_password(length=16, symbols=True):
-    chars = string.ascii_letters + string.digits
-    if symbols:
-        chars += "!@#$%^&*()_+-=[]{}|;:,.<>/?"
-    return ''.join(secrets.choice(chars) for _ in range(length))
+def gen_password(length):
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 if __name__ == "__main__":
-    # Usage: password_gen.py [length] [nosymbols]
-    length = 16
-    symbols = True
-
-    if len(sys.argv) > 1:
-        try:
-            length = int(sys.argv[1])
-        except ValueError:
-            print("Invalid length. Using default (16).")
-    if len(sys.argv) > 2:
-        if sys.argv[2].lower() == "nosymbols":
-            symbols = False
-
-    print(generate_password(length, symbols))
+    if len(sys.argv) != 2 or sys.argv[1] not in ("short", "long"):
+        print("Usage: password_gen.py [short|long]")
+        sys.exit(1)
+    mode = sys.argv[1]
+    if mode == "short":
+        print(gen_password(8))
+    elif mode == "long":
+        print(gen_password(20))
