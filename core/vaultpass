@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # vaultpass - Interactive Password Manager (v1.4+)
 set -e
 
@@ -23,192 +22,236 @@ require_passphrase_setup() {
         echo "[] First run: You must set a master passphrase."
         echo "  - This passphrase protects all your saved passwords."
         echo "  - If you forget it, your passwords cannot be recovered."
-        read -p "Enter a passphrase hint (can be blank): " hint
+        read -p "Enter a passphrase hint (for your eyes only, can be blank): " hint
         mkdir -p "$SYSTEM_DIR"
         echo "$hint" > "$HINT_FILE"
         log_action "Set passphrase hint"
         echo "[] Passphrase hint saved."
     fi
-    echo "💡 Hint: $(cat "$HINT_FILE")"
+    if [ -f "$HINT_FILE" ]; then
+        echo "💡 Hint: $(cat "$HINT_FILE")"
+    fi
 }
 
-update_vaultpass() {
+LAST_UPDATE_FILE="$SYSTEM_DIR/.last_update_check"
+NEED_UPDATE=0
+if [ -f "$LAST_UPDATE_FILE" ]; then
+    last=$(date -r "$LAST_UPDATE_FILE" +%s)
+    now=$(date +%s)
+    diff=$(( (now - last) / 86400 ))
+    [ "$diff" -ge 7 ] && NEED_UPDATE=1
+else
+    NEED_UPDATE=1
+fi
+
+if [ "$NEED_UPDATE" -eq 1 ]; then
     echo "[] Checking for vaultpass updates..."
     (cd "$INSTALL_DIR" && git fetch origin main && git remote update > /dev/null 2>&1)
     local_commit=$(cd "$INSTALL_DIR" && git rev-parse HEAD)
     remote_commit=$(cd "$INSTALL_DIR" && git rev-parse origin/main)
     if [ "$local_commit" != "$remote_commit" ]; then
         echo "[!] New version available!"
-        echo "[*] Changelog:"
-        head -20 "$CHANGELOG_FILE"
+        echo "[!] Currently installed: $local_commit"
+        echo "[!] Latest: $remote_commit"
+        echo "[] Changelog for latest version:"
+        cat "$CHANGELOG_FILE" | head -20
         read -p "Do you want to update now? (Y/n): " u
         if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then
             (cd "$INSTALL_DIR" && git pull origin main)
             echo "[✔] vaultpass updated."
-            log_action "vaultpass updated"
+            log_action "vaultpass updated via auto-check"
         fi
-    else
-        echo "[*] vaultpass is already up to date."
     fi
-}
-
-uninstall() {
-    echo "[*] Uninstalling vaultpass..."
-    if [ -f "$PASS_FILE" ]; then
-        read -p "Do you want to backup your vault first? (Y/n): " b
-        [[ "$b" =~ ^[Yy]$ || -z "$b" ]] && backup_passwords
-    fi
-    read -p "Remove all vaultpass files? (Y/n): " c
-    if [[ "$c" =~ ^[Yy]$ || -z "$c" ]]; then
-        rm -rf "$INSTALL_DIR"
-        rm -f "$BIN_PATH"
-        echo "[✔] vaultpass uninstalled."
-        log_action "Uninstalled vaultpass"
-    fi
-    exit 0
-}
+    touch "$LAST_UPDATE_FILE"
+fi
 
 show_help() {
     cat <<EOF
 vaultpass - Secure Password Manager
-
 Usage: vaultpass [OPTIONS]
 Options:
-  -l [ID ...]        Generate long password(s)
-  -s [ID ...]        Generate short password(s)
-  -c [ID ...]        Save custom password(s)
-  -L                 List all saved passwords
-  -S [ID ...]        Search saved passwords
-  -d [ID ...]        Delete password(s)
-  -e [ID ...]        Edit username/email
-  -u                 Uninstall vaultpass
-  -b                 Backup vault
-  -r                 Restore vault
-  --change-passphrase  Change master passphrase
-  --log              Show activity log
-  --update           Check for updates
-  -h, --help         Show this help
-  -a                 Show all functions
+  -l [ID ...]         Generate long password(s)
+  -s [ID ...]         Generate short password(s)
+  -c [ID ...]         Enter custom password(s)
+  -L                  List all saved passwords
+  -S [ID ...]         Search by ID
+  -d [ID ...]         Delete by ID
+  -e [ID]             Edit username/email
+  -b                  Backup vault
+  -r                  Restore from backup
+  --change-passphrase Change master passphrase
+  --log               View action log
+  --update            Check for updates
+  -h, --help          Show help
+  -a                  Show all functions
+  -c, --changelog     View changelog
 EOF
 }
 
 show_all_functions() {
     cat <<EOF
-Vaultpass Functions:
-- Generate secure passwords (short, long)
-- Save custom passwords
-- Store username/email with entries
-- Search, list, delete, and edit entries
+Vaultpass Features:
+- Generate and store passwords
+- Add username/email and optional info
+- Edit saved entries
+- List, search, delete entries
+- Encrypt/decrypt with GPG and passphrase
 - Backup and restore vault
-- Changelog & update checker
-- Detailed logging
+- Auto-update with changelog
+- Action logging
 EOF
 }
 
 backup_passwords() {
+    require_passphrase_setup
     mkdir -p "$INSTALL_DIR/backup"
     cp "$PASS_FILE" "$INSTALL_DIR/backup/passwords_$(date +%Y%m%d_%H%M%S).gpg"
-    cp "$HINT_FILE" "$INSTALL_DIR/backup/hint_$(date +%Y%m%d_%H%M%S).txt"
-    echo "[*] Backup created."
-    log_action "Vault backed up"
+    echo "[*] Backup saved to $INSTALL_DIR/backup"
+    log_action "Vault backup"
 }
 
 restore_passwords() {
-    echo "[*] Available backups:"
+    require_passphrase_setup
+    echo "[] Backups found:"
     ls "$INSTALL_DIR/backup"/*.gpg 2>/dev/null || { echo "No backups found."; return; }
-    read -p "Enter backup filename: " f
+    read -p "Enter backup filename to restore: " f
     cp "$INSTALL_DIR/backup/$f" "$PASS_FILE"
-    echo "[✔] Vault restored from backup."
-    log_action "Vault restored: $f"
+    echo "[✔] Restored vault from backup."
+    log_action "Vault restored from $f"
 }
 
 edit_entry() {
+    require_passphrase_setup
     ID="$2"
-    [ -z "$ID" ] && echo "Usage: vaultpass -e ID" && exit 1
+    if [ -z "$ID" ]; then echo "Usage: vaultpass -e ID"; exit 1; fi
     python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
     if grep -qw "$ID:" "$PASS_FILE.tmp"; then
-        old_user=$(grep -w "$ID:" "$PASS_FILE.tmp" | awk -F'|' '{print $2}')
+        entry=$(grep -w "$ID:" "$PASS_FILE.tmp")
+        old_user=$(echo "$entry" | awk -F'|' '{print $2}')
         echo "Current username/email: $old_user"
         read -p "Enter new username/email: " new_user
         sed -i "s|^$ID:[^|]*|$ID:|$new_user|" "$PASS_FILE.tmp"
         python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
+        rm "$PASS_FILE.tmp"
         echo "[✔] Username/email updated for $ID."
         log_action "Edited $ID"
     else
         echo "[X] ID not found."
+        rm "$PASS_FILE.tmp"
     fi
-    rm "$PASS_FILE.tmp"
 }
 
 change_passphrase() {
-    echo "[*] Changing passphrase (current required)"
+    require_passphrase_setup
+    echo "[] To change passphrase, you must enter the current passphrase."
     python3 "$VAULT_PY" verify "$PASS_FILE"
+    echo "[] Verified. Now setting new passphrase..."
     python3 "$VAULT_PY" change_passphrase "$PASS_FILE"
-    log_action "Changed passphrase"
+    log_action "Passphrase changed"
 }
 
-# Main switch
+update_vaultpass() {
+    (cd "$INSTALL_DIR" && git fetch origin main && git remote update > /dev/null 2>&1)
+    local_commit=$(cd "$INSTALL_DIR" && git rev-parse HEAD)
+    remote_commit=$(cd "$INSTALL_DIR" && git rev-parse origin/main)
+    if [ "$local_commit" != "$remote_commit" ]; then
+        echo "[!] New version available!"
+        echo "[] Updating..."
+        (cd "$INSTALL_DIR" && git pull origin main)
+        echo "[✔] vaultpass updated."
+        log_action "vaultpass updated manually"
+    else
+        echo "[*] vaultpass is up to date."
+    fi
+    exit 0
+}
+
+uninstall() {
+    echo "[*] Uninstalling vaultpass..."
+    if [ -f "$PASS_FILE" ]; then
+        read -p "Backup your vault before uninstalling? (Y/n): " b
+        [[ "$b" =~ ^[Yy]$ || -z "$b" ]] && backup_passwords
+    fi
+    read -p "Delete all vaultpass files? (Y/n): " conf
+    if [[ "$conf" =~ ^[Yy]$ || -z "$conf" ]]; then
+        rm -rf "$INSTALL_DIR"
+        rm -f "$BIN_PATH"
+        echo "[✔] vaultpass removed."
+        log_action "Uninstalled vaultpass"
+    else
+        echo "Uninstall cancelled."
+    fi
+    exit 0
+}
+
+list_passwords() {
+    require_passphrase_setup
+    python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
+    cat -n "$PASS_FILE.tmp"
+    rm "$PASS_FILE.tmp"
+    log_action "Listed all passwords"
+}
+
+search_passwords() {
+    require_passphrase_setup
+    shift
+    for ID in "$@"; do
+        python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
+        entry=$(grep -w "$ID:" "$PASS_FILE.tmp" || echo "ID $ID not found")
+        echo "$entry"
+        rm "$PASS_FILE.tmp"
+        log_action "Searched for $ID"
+    done
+}
+
+delete_passwords() {
+    require_passphrase_setup
+    shift
+    for ID in "$@"; do
+        python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
+        grep -vw "$ID:" "$PASS_FILE.tmp" > "$PASS_FILE.tmp2"
+        python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp2" "$PASS_FILE"
+        rm "$PASS_FILE.tmp" "$PASS_FILE.tmp2"
+        echo "[✔] Deleted $ID."
+        log_action "Deleted $ID"
+    done
+}
+
+generate_passwords() {
+    require_passphrase_setup
+    mode="$1"; shift
+    for ID in "$@"; do
+        case "$mode" in
+            -l) pwd=$(python3 "$PASSGEN_PY" long) ;;
+            -s) pwd=$(python3 "$PASSGEN_PY" short) ;;
+            -c)
+                read -p "Enter custom password for $ID: " pwd
+                ;;
+        esac
+        read -p "Enter username/email (optional): " user
+        read -p "Enter info/description (optional): " info
+        python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
+        echo "$ID:|$user|$pwd|$info" >> "$PASS_FILE.tmp"
+        python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
+        rm "$PASS_FILE.tmp"
+        echo "[✔] Saved password for $ID."
+        log_action "Saved $ID"
+    done
+}
+
 case "$1" in
     -h|--help) show_help ;;
     -a) show_all_functions ;;
-    -c) shift
-        for ID in "$@"; do
-            read -s -p "Enter password for $ID: " custom_pwd
-            echo
-            read -p "Enter username/email for $ID (optional): " user
-            python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
-            echo "$ID:|$user|$custom_pwd" >> "$PASS_FILE.tmp"
-            python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
-            rm "$PASS_FILE.tmp"
-            echo "[✔] Saved custom password for $ID."
-            log_action "Saved custom password for $ID"
-        done ;;
-    -l|-s)
-        require_passphrase_setup
-        shift
-        mode="short"
-        [ "$1" = "-l" ] && mode="long"
-        for ID in "$@"; do
-            pwd=$(python3 "$PASSGEN_PY" $mode)
-            echo "Generated password for $ID: $pwd"
-            read -p "Enter username/email (optional): " user
-            python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
-            echo "$ID:|$user|$pwd" >> "$PASS_FILE.tmp"
-            python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
-            rm "$PASS_FILE.tmp"
-            echo "[✔] Saved password for $ID."
-            log_action "Saved password for $ID"
-        done ;;
-    -L)
-        require_passphrase_setup
-        python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
-        cat -n "$PASS_FILE.tmp"
-        rm "$PASS_FILE.tmp"
-        log_action "Listed passwords"
-        ;;
-    -S)
-        require_passphrase_setup
-        shift; for ID in "$@"; do
-            python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
-            grep -w "$ID:" "$PASS_FILE.tmp" || echo "ID $ID not found"
-            rm "$PASS_FILE.tmp"
-            log_action "Searched for $ID"
-        done ;;
-    -d)
-        require_passphrase_setup
-        shift; for ID in "$@"; do
-            python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
-            grep -vw "$ID:" "$PASS_FILE.tmp" > "$PASS_FILE.tmp2"
-            python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp2" "$PASS_FILE"
-            rm "$PASS_FILE.tmp" "$PASS_FILE.tmp2"
-            echo "[✔] Deleted $ID."
-            log_action "Deleted $ID"
-        done ;;
-    -e) require_passphrase_setup; edit_entry "$@" ;;
-    -b) require_passphrase_setup; backup_passwords ;;
-    -r) require_passphrase_setup; restore_passwords ;;
-    --change-passphrase) require_passphrase_setup; change_passphrase ;;
+    -c|--changelog) cat "$CHANGELOG_FILE" ;;
     --log) cat "$LOG_FILE" ;;
+    -b) backup_passwords ;;
+    -r) restore_passwords ;;
+    -e) edit_entry "$@" ;;
+    -L) list_passwords ;;
+    -S) search_passwords "$@" ;;
+    -d) delete_passwords "$@" ;;
+    -l|-s|-c) generate_passwords "$@" ;;
+    --change-passphrase) change_passphrase ;;
     --update) update_vaultpass ;;
     -u) uninstall ;;
     *) show_help ;;
