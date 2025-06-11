@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vault.py - Encryption/Decryption helper for mkpasswd
+vault.py - Encryption/Decryption helper for vaultpass
 Uses GPG (python-gnupg) to encrypt/decrypt vault files.
 """
 
@@ -10,8 +10,8 @@ import getpass
 import os
 
 def get_passphrase():
-    if 'MKPASSWD_PASSPHRASE' in os.environ:
-        return os.environ['MKPASSWD_PASSPHRASE']
+    if 'VAULTPASS_PASSPHRASE' in os.environ:
+        return os.environ['VAULTPASS_PASSPHRASE']
     else:
         return getpass.getpass("Enter vault passphrase: ")
 
