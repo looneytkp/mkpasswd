@@ -1,34 +1,53 @@
-v1.4
-- Renamed project and scripts to vaultpass for system compatibility
-- Switched update/check system to pure git (no more version.txt)
-- Added --update CLI flag to vaultpass (Bash & PowerShell)
-- Integrated vault.py and password_gen.py for encryption & password gen
-- Cleaned up code, help, and multi-ID/user features
+Version 1.5
+- Renamed from mkpasswd to vaultpass (conflict-free command)
+- Restructured directory to: ~/.vaultpass/{core,system,backup}
+- Vault logs now saved in vaultpass.log
+- Weekly auto-update check via Git
+- Passphrase now only required for secure actions
+- Added --change-passphrase with validation
+- Warns if using blank passphrase
+- Backs up and restores passphrase_hint.txt
+- New password structure includes optional 'info' field
+- Improved argument handling and CLI help
+- Installers now check for package managers by distro
+- Unified setup/uninstall
+- Fixes for Termux compatibility
 
-v1.3
-- Added logging of all actions
-- Multi-ID support for duplicate IDs
-- Username/email now saved with each password
-- Update username/email feature for any entry
-- Required/checked all vault files at launch
-- Improved uninstall with backup/restore option
+Version 1.4
+- Added backup system to ~/.vaultpass/backup
+- Optional GPG encryption of backups
+- Integrated logging to vaultpass.log
+- Username/email can now be updated independently
+- Added support for multiple passwords under the same ID
+- Added uninstall confirmation and backup prompt
+- Switched to Git-based remote updates
+- Added check for required files and auto-reinstall prompt
+- Added version check using Git commits
 
-v1.2
-- Removed Dropbox backup, restore, and token features
-- Simplified install footprint
-- Reduced dependencies and API calls
+Version 1.3
+- Added username/email field for each entry
+- Allowed editing saved username/email with `-e`
+- Prompted user when duplicate ID is found (add, replace, cancel)
+- Backup now includes passphrase hint
+- Added passphrase prompt only for secure operations
+- Updated backup/restore logic
 
-v1.1
-- Full cross-platform folder structure
-- Universal install/uninstall scripts (Bash + PowerShell)
-- Basic backup and restore
-- Weekly auto-update check
-- Logging and action audit log
-- Help and changelog commands
+Version 1.2
+- Initial integration of Python scripts: vault.py, password_gen.py
+- Added support for long and short password generation
+- Encrypted password vault with GPG
+- Added support for backup and restore options
+- Added uninstall flag and cleanup
+- Displayed passphrase hint on startup
 
-v1.0
-- First public release (as mkpasswd)
-- Interactive password generator
-- Basic vault save/search/list/delete
-- Basic backup and restore
-- Linux and Windows support
+Version 1.1
+- Introduced logging for actions
+- Improved error handling and edge case detection
+- Setup script enhancements and prompts
+- Basic ID search support added
+
+Version 1.0
+- Initial release as mkpasswd
+- Basic interactive password generation
+- Encrypted password storage
+- Simple ID management
