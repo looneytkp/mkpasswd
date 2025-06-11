@@ -1,12 +1,11 @@
-# uninstall.ps1 - mkpasswd Windows PowerShell uninstaller
+# uninstall.ps1 - mkpasswd universal uninstaller (Windows PowerShell)
 
 Write-Host "[*] Uninstalling mkpasswd..." -ForegroundColor Cyan
 
 $installDir = "$env:USERPROFILE\.mkpasswd"
-$systemDir = "$installDir\system"
-$backupDir = "$installDir\backup"
-$vaultFile = "$systemDir\passwords.gpg"
 $binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
+$backupDir = "$installDir\backup"
+$vaultFile = "$installDir\system\passwords.gpg"
 
 # Offer backup before removal
 if (Test-Path $vaultFile) {
@@ -25,11 +24,11 @@ if (Test-Path $installDir) {
     Write-Host "[*] Removed $installDir"
 }
 
-# Remove launcher from WindowsApps
-$cmdPath = "$binDir\mkpasswd.cmd"
-if (Test-Path $cmdPath) {
-    Remove-Item $cmdPath -Force
-    Write-Host "[*] Removed mkpasswd command from WindowsApps"
+# Remove launcher
+$batPath = "$binDir\mkpasswd.bat"
+if (Test-Path $batPath) {
+    Remove-Item $batPath -Force
+    Write-Host "[*] Removed mkpasswd launcher from WindowsApps"
 }
 
 Write-Host "[✔] mkpasswd and all related files removed." -ForegroundColor Green
