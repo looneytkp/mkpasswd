@@ -1,3 +1,8 @@
+# Auto-bypass script execution policy if needed
+if ((Get-ExecutionPolicy) -ne "Bypass") {
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+}
+
 $installPath = "$env:USERPROFILE\.vaultpass"
 $binPath = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\vaultpass.ps1"
 $repoURL = "https://github.com/looneytkp/vaultpass.git"
