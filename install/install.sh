@@ -51,31 +51,23 @@ pip3 install --user python-gnupg &>/dev/null
 # Clone the repo
 git clone "$REPO_URL" "$INSTALL_DIR"
 
-# Make the script executable and add to PATH
+# Make the script executable and link it
 chmod +x "$INSTALL_DIR/core/vaultpass"
 mkdir -p "$HOME/.local/bin"
 ln -sf "$INSTALL_DIR/core/vaultpass" "$HOME/.local/bin/vaultpass"
 
-# Ensure ~/.local/bin is in PATH
-SHELL_RC=""
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_RC="$HOME/.zshrc"
-elif [ -f "$HOME/.bashrc" ]; then
-    SHELL_RC="$HOME/.bashrc"
-elif [ -f "$HOME/.profile" ]; then
-    SHELL_RC="$HOME/.profile"
-else
-    SHELL_RC="$HOME/.bashrc"
+# Termux / Linux PATH fix
+if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+    echo "[*] PATH updated in .bashrc"
 fi
 
-if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC"; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-    echo "[*] Added ~/.local/bin to PATH in $SHELL_RC"
-fi
-
-# Reload shell config or fallback
-source "$SHELL_RC" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 echo ""
-echo "[✔] vaultpass is installed and ready!"
-echo "You can now type 'vaultpass' from anywhere in your terminal."
+echo "[✔] vaultpass installed successfully!"
+echo "[*] If 'vaultpass' still doesn't work, try this:"
+echo "    source ~/.bashrc"
+echo ""
+echo "[*] Or run directly:"
+echo "    ~/.local/bin/vaultpass"
