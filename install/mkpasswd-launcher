@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# mkpasswd universal launcher
+
+# Detect OS
+OS=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]')
+USER_HOME="$HOME"
+MKPASSWD_MAIN=""
+
+if [[ "$OS" == *"mingw"* || "$OS" == *"cygwin"* || "$OS" == *"msys"* ]]; then
+  # Windows (via Git Bash, Cygwin, or WSL)
+  MKPASSWD_MAIN="$USERPROFILE\\.mkpasswd\\core\\mkpasswd"
+  PYTHON=python
+elif [[ "$OS" == "darwin" || "$OS" == "linux" ]]; then
+  # Mac or Linux
+  MKPASSWD_MAIN="$HOME/.mkpasswd/core/mkpasswd"
+  PYTHON=python3
+else
+  echo "Unsupported platform."
+  exit 1
+fi
+
+if [ ! -f "$MKPASSWD_MAIN" ]; then
+  echo "[X] mkpasswd not found. Please install first."
+  exit 1
+fi
+
+$PYTHON "$MKPASSWD_MAIN" "$@"
