@@ -1,61 +1,27 @@
-# uninstall.ps1 - mkpasswd universal uninstaller (Windows PowerShell)
+# uninstall.ps1 - Windows uninstaller for vaultpass
 
-Write-Host "[*] Uninstalling mkpasswd..." -ForegroundColor Cyan
+$InstallDir = "$HOME\.vaultpass"
+$Launcher = "$HOME\AppData\Local\Microsoft\WindowsApps\vaultpass.ps1"
 
-$installDir = "$env:USERPROFILE\.mkpasswd"
-$binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
-$backupDir = "$installDir\backup"
-$vaultFile = "$installDir\system\passwords.gpg"
+Write-Host "[*] Uninstalling vaultpass..."
 
-# Offer backup before removal
-if (Test-Path $vaultFile) {
-    $response = Read-Host "Do you want to backup your password vault before uninstalling? (Y/n)"
-    if ($response -eq "Y" -or $response -eq "y" -or $response -eq "") {
-        if (!(Test-Path $backupDir)) { New-Item -ItemType Directory -Force -Path $backupDir | Out-Null }
-        $backupPath = "$backupDir\passwords_uninstall_$(Get-Date -Format 'yyyyMMddHHmmss').gpg"
-        Copy-Item $vaultFile $backupPath -Force
-        Write-Host "[✔] Passwords backed up to $backupPath" -ForegroundColor Green
-    }
+# Remove launcher
+if (Test-Path $Launcher) {
+    Remove-Item $Launcher -Force
+    Write-Host "[*] Removed vaultpass launcher from WindowsApps."
 }
 
-# Remove mkpasswd directory
-if (Test-Path $installDir) {
-    Remove-Item $installDir -Recurse -Force
-    Write-Host "[*] Removed $installDir"
+# Remove installation
+if (Test-Path $InstallDir) {
+    Remove-Item $InstallDir -Recurse -Force
+    Write-Host "[*] Removed vaultpass install directory."
 }
 
-# Remove launcher from WindowsApps
-$batPath = "$binDir\mkpasswd.bat"
-if (Test-Path $batPath) {
-    Remove-Item $batPath -Force
-    Write-Host "[*] Removed mkpasswd launcher from WindowsApps"
+# Ask to uninstall Git and Python (optional)
+$confirm = Read-Host "[?] Do you want to uninstall Git and Python manually? (y/N)"
+if ($confirm -match '^(y|Y)$') {
+    Write-Host "You can remove them via Apps & Features in Windows Settings."
 }
 
-# Optionally uninstall git
-if (Get-Command git.exe -ErrorAction SilentlyContinue) {
-    $unGit = Read-Host "Do you want to uninstall Git for Windows as well? (y/N)"
-    if ($unGit -eq "y" -or $unGit -eq "Y") {
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            Write-Host "[*] Uninstalling Git for Windows using winget..."
-            winget uninstall --id Git.Git -e --accept-package-agreements --accept-source-agreements
-        } else {
-            Write-Host "[!] winget not available. Please uninstall Git manually via Control Panel or Settings."
-        }
-    }
-}
-
-# Optionally uninstall Python
-if (Get-Command python -ErrorAction SilentlyContinue) {
-    $unPy = Read-Host "Do you want to uninstall Python as well? (y/N)"
-    if ($unPy -eq "y" -or $unPy -eq "Y") {
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            Write-Host "[*] Uninstalling Python using winget..."
-            winget uninstall --id Python.Python.3 -e --accept-package-agreements --accept-source-agreements
-        } else {
-            Write-Host "[!] winget not available. Please uninstall Python manually via Control Panel or Settings."
-        }
-    }
-}
-
-Write-Host "[✔] mkpasswd and all related files removed." -ForegroundColor Green
-Write-Host "[!] If you backed up your vault, it is in: $backupDir" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "[✔] vaultpass has been completely uninstalled."
