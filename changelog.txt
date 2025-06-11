@@ -1,0 +1,24 @@
+v1.3 - June 2025
+- Added backup/ directory with support for multiple backups
+- Optional GPG encryption for backups (prompted on backup/restore)
+- Logging of all actions to mkpasswd.log
+- Username/email can be updated separately from password
+- Multi-ID support for duplicate IDs (append _n)
+- Improved uninstall/restore flow for backup detection
+- Expanded help page
+- Safety checks and user prompts improved
+- More robust file checks and error messages
+
+v1.2 - June 2025
+- Removed Dropbox backup, restore, and token features
+- Simplified the install footprint
+- Reduced dependencies and API calls
+
+v1.1 - June 2025
+- Fixed Windows install issues
+- Added changelog system
+- Added passphrase hint support
+- Added file checks + update prompt
+- Removed Dropbox backup
+- Multiple passwords per ID
+- Username/email on password save
