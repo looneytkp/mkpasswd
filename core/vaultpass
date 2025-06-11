@@ -6,17 +6,17 @@ set -e
 
 INSTALL_DIR="$HOME/.vaultpass" CORE_DIR="$INSTALL_DIR/core" SYSTEM_DIR="$INSTALL_DIR/system" PASS_FILE="$SYSTEM_DIR/passwords.gpg" HINT_FILE="$SYSTEM_DIR/passphrase_hint.txt" LOG_FILE="$SYSTEM_DIR/vaultpass.log" CHANGELOG_FILE="$INSTALL_DIR/changelog.txt" VAULT_PY="$CORE_DIR/vault.py" PASSGEN_PY="$CORE_DIR/password_gen.py"
 
-Functions for logging
+#Functions for logging
 
 log_action() { mkdir -p "$SYSTEM_DIR" echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG_FILE" }
 
 require_passphrase_setup() { if [ ! -f "$HINT_FILE" ]; then echo "[] First run: You must set a master passphrase." echo "  - This passphrase protects all your saved passwords." echo "  - If you forget it, your passwords cannot be recovered." read -p "Enter a passphrase hint (for your eyes only, can be blank): " hint mkdir -p "$SYSTEM_DIR" echo "$hint" > "$HINT_FILE" log_action "Set passphrase hint" echo "[] Passphrase hint saved." fi if [ -f "$HINT_FILE" ]; then echo "💡 Hint: $(cat "$HINT_FILE")" fi }
 
-Weekly update check
+#Weekly update check
 
 LAST_UPDATE_FILE="$SYSTEM_DIR/.last_update_check" NEED_UPDATE=0 if [ -f "$LAST_UPDATE_FILE" ]; then last=$(date -r "$LAST_UPDATE_FILE" +%s) now=$(date +%s) diff=$(( (now - last) / 86400 )) [ "$diff" -ge 7 ] && NEED_UPDATE=1 else NEED_UPDATE=1 fi if [ "$NEED_UPDATE" -eq 1 ]; then echo "[] Checking for vaultpass updates..." (cd "$INSTALL_DIR" && git fetch origin main && git remote update > /dev/null 2>&1) local_commit=$(cd "$INSTALL_DIR" && git rev-parse HEAD) remote_commit=$(cd "$INSTALL_DIR" && git rev-parse origin/main) if [ "$local_commit" != "$remote_commit" ]; then echo "[!] New version available!" echo "[!] Currently installed: $local_commit" echo "[!] Latest: $remote_commit" echo "[] Changelog for latest version:" cat "$CHANGELOG_FILE" | head -20 read -p "Do you want to update now? (Y/n): " u if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then (cd "$INSTALL_DIR" && git pull origin main) echo "[✔] vaultpass updated." log_action "vaultpass updated via auto-check" fi fi touch "$LAST_UPDATE_FILE" fi
 
---- Command line options ---
+#--- Command line options ---
 
 case "$1" in -h|--help) cat <<EOF vaultpass - Secure Password Manager Usage: vaultpass [OPTIONS] Options: -l [ID ...]        Generate long password(s) (save by ID) -s [ID ...]        Generate short password(s) -c [ID ...]        Generate custom password(s) -L                 List all saved passwords -S [ID ...]        Search for passwords by ID -d [ID ...]        Delete password(s) by ID -u                 Uninstall vaultpass -b                 Backup passwords to backup/ folder -r                 Restore from backup -e [ID ...]        Edit username/email for entry --change-passphrase  Change master passphrase -a                 Show all vaultpass functions -h, --help         Show this help -c, --changelog    View changelog --log              View action log --update           Check for updates EOF ;;
 
