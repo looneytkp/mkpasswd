@@ -13,11 +13,7 @@ It lets you securely generate, save, search, backup, and restore passwords—wit
 - Save username/email with each password
 - Multi-ID support (save multiple passwords for same ID)
 - Auto-backup system (optional encryption, multiple backups)
-- Action log for auditing your vault use
-- Uninstall with backup prompt and automatic cleanup
-- Weekly auto-update check (with changelog display)
 - Cross-platform CLI: works on Linux, macOS, and Windows
-- Easy one-liner install
 
 ---
 
