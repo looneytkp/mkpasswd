@@ -1,18 +1,18 @@
-# install.ps1 - mkpasswd Universal Windows Installer (v1.4+)
-Write-Host "[*] Starting mkpasswd installer for Windows..." -ForegroundColor Cyan
+# install.ps1 - vaultpass Universal Windows Installer
+Write-Host "[*] Starting vaultpass installer for Windows..." -ForegroundColor Cyan
 
-$installDir = "$env:USERPROFILE\.mkpasswd"
+$installDir = "$env:USERPROFILE\.vaultpass"
 $binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
-$batPath = "$binDir\mkpasswd.bat"
-$repoUrl = "https://github.com/looneytkp/mkpasswd.git"
+$batPath = "$binDir\vaultpass.bat"
+$repoUrl = "https://github.com/looneytkp/vaultpass.git"
 
 # --- Remove any old install ---
 if (Test-Path $installDir) {
-    Write-Host "[*] Removing previous mkpasswd install at $installDir..."
+    Write-Host "[*] Removing previous vaultpass install at $installDir..."
     Remove-Item $installDir -Recurse -Force
 }
 if (Test-Path $batPath) {
-    Write-Host "[*] Removing old mkpasswd launcher at $batPath..."
+    Write-Host "[*] Removing old vaultpass launcher at $batPath..."
     Remove-Item $batPath -Force
 }
 
@@ -62,17 +62,17 @@ if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
 Install-Python
 Install-Gnupg
 
-# --- Install mkpasswd ---
-Write-Host "[*] Downloading mkpasswd files from GitHub..."
+# --- Install vaultpass ---
+Write-Host "[*] Downloading vaultpass files from GitHub..."
 git clone --depth 1 $repoUrl $installDir
-Write-Host "[✔] mkpasswd installed successfully!" -ForegroundColor Green
+Write-Host "[✔] vaultpass installed successfully!" -ForegroundColor Green
 
-# --- Create launcher (mkpasswd.bat) in WindowsApps for global access ---
+# --- Create launcher (vaultpass.bat) in WindowsApps for global access ---
 if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
-$launcherContent = "@echo off`npython `"%USERPROFILE%\.mkpasswd\core\mkpasswd`" %*"
+$launcherContent = "@echo off`npython `"%USERPROFILE%\.vaultpass\core\vaultpass`" %*"
 Set-Content -Path $batPath -Value $launcherContent -Encoding ASCII
 
 Write-Host ""
-Write-Host "Open a new terminal (CMD or PowerShell) and run: mkpasswd -h" -ForegroundColor Cyan
+Write-Host "Open a new terminal (CMD or PowerShell) and run: vaultpass -h" -ForegroundColor Cyan
 Write-Host ""
 exit 0
