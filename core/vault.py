@@ -1,55 +1,74 @@
-#!/usr/bin/env python3
-"""
-vault.py - Encryption/Decryption helper for vaultpass
-Uses GPG (python-gnupg) to encrypt/decrypt vault files.
-"""
-
 import sys
 import gnupg
-import getpass
 import os
 
+gpg = gnupg.GPG()
+passfile = sys.argv[2]
+
 def get_passphrase():
-    if 'VAULTPASS_PASSPHRASE' in os.environ:
-        return os.environ['VAULTPASS_PASSPHRASE']
-    else:
-        return getpass.getpass("Enter vault passphrase: ")
+    return input("🔐 Enter master passphrase: ")
 
-def encrypt(infile, outfile):
-    gpg = gnupg.GPG()
-    passphrase = get_passphrase()
-    with open(infile, 'rb') as f:
-        status = gpg.encrypt_file(
-            f, recipients=None, symmetric=True,
-            passphrase=passphrase,
-            output=outfile
-        )
-    if not status.ok:
-        print("[X] Encryption failed:", status.status)
-        sys.exit(1)
-
-def decrypt(infile, outfile):
-    gpg = gnupg.GPG()
-    passphrase = get_passphrase()
-    with open(infile, 'rb') as f:
-        status = gpg.decrypt_file(
-            f, passphrase=passphrase, output=outfile
-        )
-    if not status.ok:
-        print("[X] Decryption failed:", status.status)
-        sys.exit(1)
-
-if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: vault.py [encrypt|decrypt] <input> <output>")
-        sys.exit(1)
-    action = sys.argv[1]
-    infile = sys.argv[2]
+def decrypt():
     outfile = sys.argv[3]
-    if action == "encrypt":
-        encrypt(infile, outfile)
-    elif action == "decrypt":
-        decrypt(infile, outfile)
-    else:
-        print("Unknown action:", action)
-        sys.exit(1)
+    with open(passfile, 'rb') as f:
+        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase(), output=outfile)
+        if not decrypted.ok:
+            print("[X] Failed to decrypt. Wrong passphrase?")
+            os.remove(outfile) if os.path.exists(outfile) else None
+            sys.exit(1)
+
+def encrypt():
+    infile = sys.argv[3]
+    with open(infile, 'rb') as f:
+        encrypted = gpg.encrypt_file(
+            f,
+            None,
+            passphrase=get_passphrase(),
+            symmetric='AES256',
+            output=passfile
+        )
+        if not encrypted.ok:
+            print("[X] Encryption failed.")
+            sys.exit(1)
+
+def verify():
+    with open(passfile, 'rb') as f:
+        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase())
+        if not decrypted.ok:
+            print("[X] Incorrect passphrase.")
+            sys.exit(1)
+        else:
+            print("[✔] Passphrase verified.")
+
+def change_passphrase():
+    infile = passfile + ".tmp"
+    with open(passfile, 'rb') as f:
+        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase(), output=infile)
+        if not decrypted.ok:
+            print("[X] Failed to verify current passphrase.")
+            os.remove(infile) if os.path.exists(infile) else None
+            sys.exit(1)
+    new_pass = input("🔐 Enter new passphrase: ")
+    with open(infile, 'rb') as f:
+        encrypted = gpg.encrypt_file(
+            f,
+            None,
+            passphrase=new_pass,
+            symmetric='AES256',
+            output=passfile
+        )
+    os.remove(infile)
+    print("[✔] Passphrase changed successfully.")
+
+cmd = sys.argv[1]
+
+if cmd == "decrypt":
+    decrypt()
+elif cmd == "encrypt":
+    encrypt()
+elif cmd == "verify":
+    verify()
+elif cmd == "change_passphrase":
+    change_passphrase()
+else:
+    print("[X] Unknown command.")
