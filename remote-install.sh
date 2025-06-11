@@ -1,1 +1,0 @@
-# remote-install.sh placeholder
