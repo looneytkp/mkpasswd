@@ -1,119 +1,78 @@
 #!/bin/bash
+# vaultpass - Setup Script (Installer/Uninstaller)
+set -e
 
 INSTALL_DIR="$HOME/.vaultpass"
 BIN_PATH="$HOME/.local/bin/vaultpass"
-REPO_URL="https://github.com/looneytkp/vaultpass.git"
-SHELL_RC="$HOME/.bashrc"
 
-# Detect shell config
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_RC="$HOME/.zshrc"
-elif [ -f "$HOME/.profile" ]; then
-    SHELL_RC="$HOME/.profile"
-fi
-
-function install_git() {
-    echo "[*] Git not found. Installing..."
-    if command -v pkg &>/dev/null; then pkg install -y git
-    elif command -v apt-get &>/dev/null; then sudo apt-get install -y git
-    elif command -v dnf &>/dev/null; then sudo dnf install -y git
-    elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm git
-    else echo "[!] No supported package manager for Git."; exit 1
-    fi
-}
-
-function install_python() {
-    echo "[*] Python not found. Installing..."
-    if command -v pkg &>/dev/null; then pkg install -y python
-    elif command -v apt-get &>/dev/null; then sudo apt-get install -y python3
-    elif command -v dnf &>/dev/null; then sudo dnf install -y python3
-    elif command -v pacman &>/dev/null; then sudo pacman -Sy --noconfirm python
-    else echo "[!] No supported package manager for Python."; exit 1
-    fi
-}
-
-function update_git_python() {
-    echo "[*] Updating Git and Python..."
-    if command -v pkg &>/dev/null; then pkg upgrade -y git python
-    elif command -v apt-get &>/dev/null; then sudo apt-get install --only-upgrade -y git python3
-    elif command -v dnf &>/dev/null; then sudo dnf upgrade -y git python3
-    elif command -v pacman &>/dev/null; then sudo pacman -Syu --noconfirm git python
-    fi
-}
-
-function install_vaultpass() {
-    echo "[*] Installing vaultpass..."
-
-    command -v git &>/dev/null || install_git
-    command -v python3 &>/dev/null || install_python
-
-    pip3 install --user python-gnupg &>/dev/null
-
-    git clone "$REPO_URL" "$INSTALL_DIR"
-
-    chmod +x "$INSTALL_DIR/core/vaultpass"
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$INSTALL_DIR/core/vaultpass" "$BIN_PATH"
-
-    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC"; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-        echo "[*] PATH updated in $SHELL_RC"
-    fi
-    export PATH="$HOME/.local/bin:$PATH"
-
-    echo ""
-    echo "[✔] vaultpass installed!"
-    echo "[*] Run with: vaultpass"
-    echo "[*] Restart terminal if it doesn't work immediately."
-}
-
-function uninstall_vaultpass() {
-    echo "[*] Uninstalling vaultpass..."
-
-    rm -f "$BIN_PATH"
-    rm -rf "$INSTALL_DIR"
-
-    sed -i '/.local\/bin/d' "$SHELL_RC"
-
-    read -p "[?] Also uninstall Git and Python? (y/N): " choice
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-        if command -v pkg &>/dev/null; then pkg uninstall -y git python
-        elif command -v apt-get &>/dev/null; then sudo apt-get remove -y git python3
-        elif command -v dnf &>/dev/null; then sudo dnf remove -y git python3
-        elif command -v pacman &>/dev/null; then sudo pacman -Rns --noconfirm git python
-        else echo "[!] Package manager not supported."
-        fi
-    fi
-
-    echo "[✔] vaultpass fully uninstalled."
-}
-
-function main_menu() {
-    if [ -d "$INSTALL_DIR" ]; then
-        echo "vaultpass is already installed."
-        echo "What would you like to do?"
-        echo "1) Reinstall vaultpass"
-        echo "2) Uninstall vaultpass"
-        echo "3) Cancel"
-        read -p "[?] Choose an option (1/2/3): " option
-
-        case "$option" in
-            1)
-                update_git_python
-                rm -f "$BIN_PATH"
-                rm -rf "$INSTALL_DIR"
-                install_vaultpass
-                ;;
-            2)
-                uninstall_vaultpass
-                ;;
-            3|*)
-                echo "[*] Action cancelled."
-                ;;
-        esac
+# Function to install dependencies (distro-aware)
+install_dependencies() {
+    echo "[*] Checking required packages..."
+    PKG_MANAGER=""
+    if [ -x "$(command -v apt-get)" ]; then
+        PKG_MANAGER="sudo apt-get install -y"
+    elif [ -x "$(command -v dnf)" ]; then
+        PKG_MANAGER="sudo dnf install -y"
+    elif [ -x "$(command -v pacman)" ]; then
+        PKG_MANAGER="sudo pacman -Syu --noconfirm"
+    elif [ -x "$(command -v pkg)" ]; then
+        PKG_MANAGER="pkg install -y"
     else
-        install_vaultpass
+        echo "[X] Unsupported package manager. Install git and python3 manually."
+        return
+    fi
+
+    if ! command -v git >/dev/null 2>&1; then
+        echo "[*] Installing git..."
+        $PKG_MANAGER git
+    fi
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "[*] Installing python3..."
+        $PKG_MANAGER python3
     fi
 }
 
-main_menu
+# Function to install vaultpass
+install_vaultpass() {
+    echo "[*] Installing vaultpass..."
+    rm -rf "$INSTALL_DIR"
+    git clone https://github.com/looneytkp/vaultpass "$INSTALL_DIR"
+    mkdir -p "$HOME/.local/bin"
+    cp "$INSTALL_DIR/core/vaultpass" "$BIN_PATH"
+    chmod +x "$BIN_PATH"
+    echo "[✔] Installed. Run with: vaultpass"
+}
+
+# Function to uninstall vaultpass
+uninstall_vaultpass() {
+    echo "[*] Uninstalling vaultpass..."
+    read -p "Do you want to delete all vaultpass files? (Y/n): " conf
+    if [[ "$conf" =~ ^[Yy]$ || -z "$conf" ]]; then
+        rm -rf "$INSTALL_DIR"
+        rm -f "$BIN_PATH"
+        echo "[✔] vaultpass uninstalled."
+    else
+        echo "Uninstall cancelled."
+    fi
+    exit 0
+}
+
+# --- Main Logic ---
+
+# Check if vaultpass is already installed (folder or command exists)
+if [ -d "$INSTALL_DIR" ] || command -v vaultpass >/dev/null 2>&1; then
+    echo "vaultpass is already installed."
+    echo "What would you like to do?"
+    echo "1) Reinstall vaultpass"
+    echo "2) Uninstall vaultpass"
+    echo "3) Cancel"
+    read -p "[?] Choose an option (1/2/3): " opt
+    case $opt in
+        1) install_dependencies && install_vaultpass ;;
+        2) uninstall_vaultpass ;;
+        *) echo "Cancelled."; exit 0 ;;
+    esac
+else
+    install_dependencies
+    install_vaultpass
+fi
