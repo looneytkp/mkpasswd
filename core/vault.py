@@ -1,74 +1,70 @@
 import sys
+from getpass import getpass
 import gnupg
-import os
 
 gpg = gnupg.GPG()
-passfile = sys.argv[2]
 
-def get_passphrase():
-    return input("🔐 Enter master passphrase: ")
-
-def decrypt():
-    outfile = sys.argv[3]
-    with open(passfile, 'rb') as f:
-        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase(), output=outfile)
-        if not decrypted.ok:
-            print("[X] Failed to decrypt. Wrong passphrase?")
-            os.remove(outfile) if os.path.exists(outfile) else None
-            sys.exit(1)
-
-def encrypt():
-    infile = sys.argv[3]
-    with open(infile, 'rb') as f:
-        encrypted = gpg.encrypt_file(
-            f,
-            None,
-            passphrase=get_passphrase(),
-            symmetric='AES256',
-            output=passfile
+def encrypt(input_file, output_file):
+    passphrase = getpass("Enter your passphrase: ")
+    with open(input_file, "r") as f:
+        status = gpg.encrypt_file(
+            f, recipients=None, symmetric=True, passphrase=passphrase,
+            output=output_file
         )
-        if not encrypted.ok:
-            print("[X] Encryption failed.")
-            sys.exit(1)
+    if not status.ok:
+        print("[X] Encryption failed:", status.status)
+        sys.exit(1)
 
-def verify():
-    with open(passfile, 'rb') as f:
-        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase())
-        if not decrypted.ok:
-            print("[X] Incorrect passphrase.")
-            sys.exit(1)
-        else:
-            print("[✔] Passphrase verified.")
+def decrypt(input_file, output_file):
+    passphrase = getpass("Enter your passphrase: ")
+    with open(input_file, "rb") as f:
+        status = gpg.decrypt_file(f, passphrase=passphrase, output=output_file)
+    if not status.ok:
+        print("[X] Decryption failed:", status.status)
+        sys.exit(1)
 
-def change_passphrase():
-    infile = passfile + ".tmp"
-    with open(passfile, 'rb') as f:
-        decrypted = gpg.decrypt_file(f, passphrase=get_passphrase(), output=infile)
-        if not decrypted.ok:
-            print("[X] Failed to verify current passphrase.")
-            os.remove(infile) if os.path.exists(infile) else None
-            sys.exit(1)
-    new_pass = input("🔐 Enter new passphrase: ")
-    with open(infile, 'rb') as f:
-        encrypted = gpg.encrypt_file(
-            f,
-            None,
-            passphrase=new_pass,
-            symmetric='AES256',
-            output=passfile
-        )
-    os.remove(infile)
-    print("[✔] Passphrase changed successfully.")
+def verify(input_file):
+    passphrase = getpass("Enter your current passphrase: ")
+    with open(input_file, "rb") as f:
+        status = gpg.decrypt_file(f, passphrase=passphrase)
+    if not status.ok:
+        print("[X] Verification failed:", status.status)
+        sys.exit(1)
 
-cmd = sys.argv[1]
+def change_passphrase(input_file):
+    old_pass = getpass("Enter current passphrase: ")
+    decrypted = gpg.decrypt_file(open(input_file, "rb"), passphrase=old_pass)
+    if not decrypted.ok:
+        print("[X] Decryption failed with current passphrase.")
+        sys.exit(1)
+    new_pass = getpass("Enter new passphrase: ")
+    confirm_pass = getpass("Confirm new passphrase: ")
+    if new_pass != confirm_pass:
+        print("[X] Passphrases do not match.")
+        sys.exit(1)
+    result = gpg.encrypt(str(decrypted), recipients=None, symmetric=True,
+                         passphrase=new_pass, output=input_file)
+    if not result.ok:
+        print("[X] Re-encryption failed:", result.status)
+        sys.exit(1)
 
-if cmd == "decrypt":
-    decrypt()
-elif cmd == "encrypt":
-    encrypt()
-elif cmd == "verify":
-    verify()
-elif cmd == "change_passphrase":
-    change_passphrase()
-else:
-    print("[X] Unknown command.")
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: vault.py [encrypt|decrypt|verify|change_passphrase] input [output]")
+        sys.exit(1)
+
+    command = sys.argv[1]
+    input_file = sys.argv[2]
+    output_file = sys.argv[3] if len(sys.argv) > 3 else None
+
+    if command == "encrypt":
+        encrypt(input_file, output_file)
+    elif command == "decrypt":
+        decrypt(input_file, output_file)
+    elif command == "verify":
+        verify(input_file)
+    elif command == "change_passphrase":
+        change_passphrase(input_file)
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)
