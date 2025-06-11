@@ -1,27 +1,11 @@
-#!/usr/bin/env bash
-# mkpasswd universal launcher
+#!/usr/bin/env pwsh
+# vaultpass.ps1 - PowerShell launcher for vaultpass
 
-# Detect OS
-OS=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]')
-USER_HOME="$HOME"
-MKPASSWD_MAIN=""
+$script = "$HOME\.vaultpass\core\vaultpass"
 
-if [[ "$OS" == *"mingw"* || "$OS" == *"cygwin"* || "$OS" == *"msys"* ]]; then
-  # Windows (via Git Bash, Cygwin, or WSL)
-  MKPASSWD_MAIN="$USERPROFILE\\.mkpasswd\\core\\mkpasswd"
-  PYTHON=python
-elif [[ "$OS" == "darwin" || "$OS" == "linux" ]]; then
-  # Mac or Linux
-  MKPASSWD_MAIN="$HOME/.mkpasswd/core/mkpasswd"
-  PYTHON=python3
-else
-  echo "Unsupported platform."
-  exit 1
-fi
+if (-Not (Test-Path $script)) {
+    Write-Host "[!] vaultpass core script not found at $script"
+    exit 1
+}
 
-if [ ! -f "$MKPASSWD_MAIN" ]; then
-  echo "[X] mkpasswd not found. Please install first."
-  exit 1
-fi
-
-$PYTHON "$MKPASSWD_MAIN" "$@"
+bash $script @args
