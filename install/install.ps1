@@ -1,4 +1,4 @@
-# install.ps1 - Smart mkpasswd Windows Installer v1.4
+# install.ps1 - mkpasswd Smart Installer for Windows
 
 Write-Host "[*] Installing/updating mkpasswd for Windows..." -ForegroundColor Cyan
 
@@ -22,6 +22,27 @@ function Update-Git {
     }
 }
 
+function Install-Python {
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+        Write-Host "[*] Python not found. Downloading and installing Python..." -ForegroundColor Yellow
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            winget install --id Python.Python.3 -e --accept-package-agreements --accept-source-agreements
+        } else {
+            Write-Host "[!] Please install Python 3 manually from https://www.python.org/downloads/"
+            exit 1
+        }
+    }
+}
+
+function Install-Gnupg {
+    try {
+        python -c "import gnupg" 2>$null
+    } catch {
+        Write-Host "[*] Installing python-gnupg..."
+        python -m pip install --user python-gnupg
+    }
+}
+
 # Check for git
 if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
     Install-Git
@@ -29,6 +50,9 @@ if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
     Write-Host "[*] 'git' found. Checking for updates..."
     Update-Git
 }
+
+Install-Python
+Install-Gnupg
 
 # Install or update mkpasswd
 if (Test-Path "$installDir\.git") {
@@ -43,7 +67,7 @@ if (Test-Path "$installDir\.git") {
         $answer = Read-Host "Do you want to update now? (Y/n)"
         if ($answer -eq "Y" -or $answer -eq "y" -or $answer -eq "") {
             git pull origin main
-            Write-Host "[✔] mkpasswd updated!"
+            Write-Host "[✔] mkpasswd updated!" -ForegroundColor Green
         } else {
             Write-Host "Update cancelled."
         }
@@ -53,7 +77,7 @@ if (Test-Path "$installDir\.git") {
 } else {
     Write-Host "[*] Downloading mkpasswd files from GitHub..."
     git clone --depth 1 $repoUrl $installDir
-    Write-Host "[✔] mkpasswd installed successfully!"
+    Write-Host "[✔] mkpasswd installed successfully!" -ForegroundColor Green
 }
 
 # Create a launcher (mkpasswd.bat) in WindowsApps for global access
@@ -62,4 +86,4 @@ if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | 
 $launcherContent = "@echo off`npython `"%USERPROFILE%\.mkpasswd\core\mkpasswd`" %*"
 Set-Content -Path "$binDir\mkpasswd.bat" -Value $launcherContent -Encoding ASCII
 
-Write-Host "Open a new terminal (CMD or PowerShell) and run: mkpasswd -h" -ForegroundColor Green
+Write-Host "Open a new terminal (CMD or PowerShell) and run: mkpasswd -h" -ForegroundColor Cyan
