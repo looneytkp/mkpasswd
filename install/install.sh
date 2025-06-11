@@ -1,17 +1,17 @@
 #!/bin/bash
 set -e
 
-INSTALL_DIR="$HOME/.mkpasswd"
-BIN_PATH="$HOME/.local/bin/mkpasswd"
-REPO_URL="https://github.com/looneytkp/mkpasswd.git"
+INSTALL_DIR="$HOME/.vaultpass"
+BIN_PATH="$HOME/.local/bin/vaultpass"
+REPO_URL="https://github.com/looneytkp/vaultpass.git"
 
 # --- Remove any old install ---
 if [ -d "$INSTALL_DIR" ]; then
-    echo "[*] Removing previous mkpasswd install at $INSTALL_DIR..."
+    echo "[*] Removing previous vaultpass install at $INSTALL_DIR..."
     rm -rf "$INSTALL_DIR"
 fi
 if [ -L "$BIN_PATH" ]; then
-    echo "[*] Removing old mkpasswd symlink at $BIN_PATH..."
+    echo "[*] Removing old vaultpass symlink at $BIN_PATH..."
     rm -f "$BIN_PATH"
 fi
 
@@ -70,19 +70,26 @@ install_deps() {
 
 install_deps
 
-# Install or update mkpasswd
-echo "[*] Downloading mkpasswd files from GitHub..."
+# Install or update vaultpass
+echo "[*] Downloading vaultpass files from GitHub..."
 git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
-echo "[✔] mkpasswd installed successfully!"
+echo "[✔] vaultpass installed successfully!"
 
 # Make the script executable and add to PATH
-chmod +x "$INSTALL_DIR/core/mkpasswd"
+chmod +x "$INSTALL_DIR/core/vaultpass"
 mkdir -p "$HOME/.local/bin"
-ln -sf "$INSTALL_DIR/core/mkpasswd" "$HOME/.local/bin/mkpasswd"
-if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-  echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-  export PATH="$HOME/.local/bin:$PATH"
-fi
+ln -sf "$INSTALL_DIR/core/vaultpass" "$HOME/.local/bin/vaultpass"
 
-echo "Type 'mkpasswd -h' to get started."
+# Ensure ~/.local/bin is in PATH at the start
+SHELL_RC="$HOME/.bashrc"
+if [ -n "$ZSH_VERSION" ]; then
+    SHELL_RC="$HOME/.zshrc"
+fi
+if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+    echo "[*] Added ~/.local/bin to PATH in $SHELL_RC"
+fi
+. "$SHELL_RC"
+
+echo "Type 'vaultpass -h' to get started."
 exit 0
