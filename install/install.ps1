@@ -1,78 +1,42 @@
-# install.ps1 - vaultpass Universal Windows Installer
-Write-Host "[*] Starting vaultpass installer for Windows..." -ForegroundColor Cyan
+# install.ps1 - Windows installer for vaultpass
 
-$installDir = "$env:USERPROFILE\.vaultpass"
-$binDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
-$batPath = "$binDir\vaultpass.bat"
-$repoUrl = "https://github.com/looneytkp/vaultpass.git"
+$InstallDir = "$HOME\.vaultpass"
+$RepoURL = "https://github.com/looneytkp/vaultpass.git"
+$BinPath = "$HOME\AppData\Local\Microsoft\WindowsApps"
+$Launcher = "$InstallDir\core\vaultpass"
 
-# --- Remove any old install ---
-if (Test-Path $installDir) {
-    Write-Host "[*] Removing previous vaultpass install at $installDir..."
-    Remove-Item $installDir -Recurse -Force
-}
-if (Test-Path $batPath) {
-    Write-Host "[*] Removing old vaultpass launcher at $batPath..."
-    Remove-Item $batPath -Force
+Write-Host "[*] Installing vaultpass..."
+
+# Remove old install
+if (Test-Path $InstallDir) {
+    Write-Host "[*] Removing previous installation..."
+    Remove-Item $InstallDir -Recurse -Force
 }
 
-# --- Dependency installers ---
-function Install-Git {
-    Write-Host "[*] 'git' not found. Downloading and installing Git for Windows..." -ForegroundColor Yellow
-    $gitInstaller = "$env:TEMP\Git-Setup.exe"
-    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/latest/download/Git-2.44.0-64-bit.exe" -OutFile $gitInstaller
-    Start-Process -Wait -FilePath $gitInstaller -ArgumentList "/VERYSILENT", "/NORESTART"
-    Remove-Item $gitInstaller
-}
-function Update-Git {
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        Write-Host "[*] Updating git with winget..."
-        winget upgrade --id Git.Git -e --accept-package-agreements --accept-source-agreements
-    } else {
-        Write-Host "[*] winget not available. Please update git manually if needed."
-    }
-}
-function Install-Python {
-    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-        Write-Host "[*] Python not found. Downloading and installing Python..." -ForegroundColor Yellow
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            winget install --id Python.Python.3 -e --accept-package-agreements --accept-source-agreements
-        } else {
-            Write-Host "[!] Please install Python 3 manually from https://www.python.org/downloads/"
-            exit 1
-        }
-    }
-}
-function Install-Gnupg {
-    try {
-        python -c "import gnupg" 2>$null
-    } catch {
-        Write-Host "[*] Installing python-gnupg..."
-        python -m pip install --user python-gnupg
-    }
+# Ensure Git is installed
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host "[!] Git not found. Please install Git manually from https://git-scm.com/"
+    exit 1
 }
 
-# --- Install dependencies ---
-if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
-    Install-Git
-} else {
-    Write-Host "[*] 'git' found. Checking for updates..."
-    Update-Git
+# Ensure Python is installed
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    Write-Host "[!] Python not found. Please install Python 3 manually from https://www.python.org/downloads/"
+    exit 1
 }
-Install-Python
-Install-Gnupg
 
-# --- Install vaultpass ---
-Write-Host "[*] Downloading vaultpass files from GitHub..."
-git clone --depth 1 $repoUrl $installDir
-Write-Host "[✔] vaultpass installed successfully!" -ForegroundColor Green
+# Clone the repo
+git clone $RepoURL $InstallDir
 
-# --- Create launcher (vaultpass.bat) in WindowsApps for global access ---
-if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
-$launcherContent = "@echo off`npython `"%USERPROFILE%\.vaultpass\core\vaultpass`" %*"
-Set-Content -Path $batPath -Value $launcherContent -Encoding ASCII
+# Create launcher path if needed
+$ShortcutPath = "$BinPath\vaultpass.ps1"
+if (-not (Test-Path $BinPath)) {
+    New-Item -ItemType Directory -Force -Path $BinPath | Out-Null
+}
+
+# Copy launcher
+Copy-Item "$InstallDir\install\vaultpass.ps1" $ShortcutPath -Force
 
 Write-Host ""
-Write-Host "Open a new terminal (CMD or PowerShell) and run: vaultpass -h" -ForegroundColor Cyan
-Write-Host ""
-exit 0
+Write-Host "[✔] vaultpass installed successfully!"
+Write-Host "[*] You can now run 'vaultpass' from PowerShell (you may need to restart your terminal)."
