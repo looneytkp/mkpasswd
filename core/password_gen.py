@@ -1,29 +1,24 @@
-import secrets
-import string
 import sys
+import random
+import string
 
-def generate_short():
-    return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
-
-def generate_long():
+def generate(length):
     chars = string.ascii_letters + string.digits + string.punctuation
-    return ''.join(secrets.choice(chars) for _ in range(20))
+    return ''.join(random.SystemRandom().choice(chars) for _ in range(length))
 
-def generate_custom():
-    length = int(input("Length of custom password: "))
-    use_symbols = input("Include symbols? (Y/n): ").strip().lower() != 'n'
-    chars = string.ascii_letters + string.digits
-    if use_symbols:
-        chars += string.punctuation
-    return ''.join(secrets.choice(chars) for _ in range(length))
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: password_gen.py [short|long]")
+        sys.exit(1)
 
-mode = sys.argv[1] if len(sys.argv) > 1 else 'short'
+    mode = sys.argv[1]
+    if mode == "short":
+        print(generate(12))
+    elif mode == "long":
+        print(generate(24))
+    else:
+        print("[X] Unknown mode. Use 'short' or 'long'.")
+        sys.exit(1)
 
-if mode == "short":
-    print(generate_short())
-elif mode == "long":
-    print(generate_long())
-elif mode == "custom":
-    print(generate_custom())
-else:
-    print("Invalid mode. Use: short | long | custom")
+if __name__ == "__main__":
+    main()
