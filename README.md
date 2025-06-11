@@ -21,34 +21,6 @@ It lets you securely generate, save, search, backup, and restore passwords—wit
 
 ---
 
-## 📦 Folder Structure
-
-mkpasswd/
-├── core/                  # Main scripts  
-│   ├── mkpasswd           # Main Bash script  
-│   ├── vault.py
-│   ├── password_gen.py
-│   └── changelog.txt
-│
-├── install/               # Installation files  
-│   ├── install.sh  
-│   ├── uninstall.sh  
-│   ├── install.ps1  
-│   ├── uninstall.ps1  
-│   ├── mkpasswd-launcher (universal launcher)
-│
-├── system/                # User data files (created on first use)
-│   ├── version.txt  
-│
-├── backup/                # User backups (auto/manual, created at runtime)
-│
-├── remote/                # Remote install loader  
-│   └── remote-install.sh  
-│
-└── README.md              # Project overview
-
----
-
 ## 🚀 Installation
 
 **Linux/macOS:**
