@@ -2,7 +2,18 @@
 set -e
 
 INSTALL_DIR="$HOME/.mkpasswd"
+BIN_PATH="$HOME/.local/bin/mkpasswd"
 REPO_URL="https://github.com/looneytkp/mkpasswd.git"
+
+# --- Remove any old install ---
+if [ -d "$INSTALL_DIR" ]; then
+    echo "[*] Removing previous mkpasswd install at $INSTALL_DIR..."
+    rm -rf "$INSTALL_DIR"
+fi
+if [ -L "$BIN_PATH" ]; then
+    echo "[*] Removing old mkpasswd symlink at $BIN_PATH..."
+    rm -f "$BIN_PATH"
+fi
 
 install_deps() {
     # Termux (Android)
@@ -60,30 +71,9 @@ install_deps() {
 install_deps
 
 # Install or update mkpasswd
-if [ -d "$INSTALL_DIR/.git" ]; then
-    echo "[*] mkpasswd already installed. Checking for updates..."
-    cd "$INSTALL_DIR"
-    git fetch origin main >/dev/null 2>&1
-    LOCAL=$(git rev-parse @)
-    REMOTE=$(git rev-parse @{u})
-    if [ "$LOCAL" != "$REMOTE" ]; then
-        echo "[!] New version available."
-        git log --oneline HEAD..origin/main
-        read -p "Do you want to update now? (Y/n): " answer
-        if [[ "$answer" =~ ^[Yy]$ || -z "$answer" ]]; then
-            git pull origin main
-            echo "[✔] mkpasswd updated!"
-        else
-            echo "Update cancelled."
-        fi
-    else
-        echo "[*] mkpasswd is already up to date."
-    fi
-else
-    echo "[*] Downloading mkpasswd files from GitHub..."
-    git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
-    echo "[✔] mkpasswd installed successfully!"
-fi
+echo "[*] Downloading mkpasswd files from GitHub..."
+git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+echo "[✔] mkpasswd installed successfully!"
 
 # Make the script executable and add to PATH
 chmod +x "$INSTALL_DIR/core/mkpasswd"
