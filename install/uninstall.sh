@@ -1,19 +1,16 @@
 #!/bin/bash
-# uninstall.sh - mkpasswd uninstaller for Linux
-
 set -e
 
 INSTALL_DIR="$HOME/.mkpasswd"
 BIN_PATH="$HOME/.local/bin/mkpasswd"
-BACKUP_DIR="$HOME/.mkpasswd/backup"
+BACKUP_DIR="$INSTALL_DIR/backup"
 PASS_FILE="$INSTALL_DIR/system/passwords.gpg"
 
 echo "[*] Uninstalling mkpasswd..."
 
-# Ask about backup (to backup/ with timestamp)
+# Ask about backup
 if [ -f "$PASS_FILE" ]; then
-  echo -n "Do you want to backup your password vault before uninstalling? (Y/n): "
-  read answer
+  read -p "Do you want to backup your password vault before uninstalling? (Y/n): " answer
   if [[ "$answer" =~ ^[Yy]$ || -z "$answer" ]]; then
     mkdir -p "$BACKUP_DIR"
     BACKUP_PATH="$BACKUP_DIR/passwords_uninstall_$(date +%Y%m%d%H%M%S).gpg"
@@ -26,11 +23,39 @@ rm -rf "$INSTALL_DIR"
 
 if [ -L "$BIN_PATH" ]; then
   rm "$BIN_PATH"
-  echo "[*] Removed command from ~/.local/bin/"
+  echo "[*] Removed mkpasswd command from ~/.local/bin/"
 fi
 
-if grep -q '.local/bin' "$HOME/.bashrc"; then
-  sed -i '/.local\\/bin/d' "$HOME/.bashrc"
+# Uninstall git
+if command -v git >/dev/null; then
+  read -p "Do you want to uninstall git as well? (y/N): " un_git
+  if [[ "$un_git" =~ ^[Yy]$ ]]; then
+    if command -v apt-get >/dev/null; then
+      sudo apt-get remove -y git
+    elif command -v yum >/dev/null; then
+      sudo yum remove -y git
+    elif command -v brew >/dev/null; then
+      brew uninstall git
+    else
+      echo "[!] Cannot uninstall git automatically. Please uninstall it manually."
+    fi
+  fi
+fi
+
+# Uninstall python3
+if command -v python3 >/dev/null; then
+  read -p "Do you want to uninstall python3 as well? (y/N): " un_py
+  if [[ "$un_py" =~ ^[Yy]$ ]]; then
+    if command -v apt-get >/dev/null; then
+      sudo apt-get remove -y python3
+    elif command -v yum >/dev/null; then
+      sudo yum remove -y python3
+    elif command -v brew >/dev/null; then
+      brew uninstall python3
+    else
+      echo "[!] Cannot uninstall python3 automatically. Please uninstall it manually."
+    fi
+  fi
 fi
 
 echo "[✔] mkpasswd and all related files removed."
