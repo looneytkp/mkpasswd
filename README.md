@@ -1,47 +1,96 @@
 # vaultpass
 
-**vaultpass** is a cross-platform, open-source, command-line password manager with GPG encryption.
+**vaultpass** is a lightweight, offline-first password manager built with Bash and Python.  
+It securely stores and manages your credentials using GPG encryption — fast, portable, and private.
 
-## Features
+---
 
-- Secure password storage and generation (short/long/custom)
-- Stores username/email with each password
-- Full search/list/delete/edit support
-- Local vault encrypted with your passphrase (GPG)
-- Automatic backups and easy restore
-- Detailed logs of actions
-- Weekly update checks and changelog
-- Linux, Windows, macOS, and Termux support
+## 🔐 Features
 
-## Install
+- Generate secure passwords (short, long, or custom)
+- Save optional usernames/emails with each password
+- Edit stored usernames/emails
+- Search, list, and delete stored entries
+- Backup and restore password vaults
+- Change your master passphrase
+- Auto logs actions with timestamps
+- Weekly auto-update checker
+- Works on Linux, Termux, and Windows (via PowerShell)
 
-**Linux/macOS/Termux:**
-    
-    bash <(curl -fsSL https://raw.githubusercontent.com/looneytkp/vaultpass/main/install/install.sh)
+---
 
-**Windows PowerShell:**
-    
-    irm https://raw.githubusercontent.com/looneytkp/vaultpass/main/install/install.ps1 | iex
+## 📦 Installation
 
-## Usage
+### 🔧 Linux / Termux (bash):
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/looneytkp/vaultpass/main/install/setup.sh)
+```
 
-    vaultpass -h         # Show help
-    vaultpass --update   # Check for updates
-    vaultpass -l ID      # Generate long password for ID
-    vaultpass -s ID      # Generate short password for ID
-    vaultpass -L         # List all saved passwords
-    vaultpass -S ID      # Search for password by ID
-    vaultpass -d ID      # Delete a password by ID
-    vaultpass -b         # Backup vault
-    vaultpass -r         # Restore from backup
-    vaultpass -e ID      # Edit username/email for entry
-    vaultpass -c         # Show changelog
-    vaultpass --log      # Show log
+### 🪟 Windows (PowerShell):
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iwr -useb https://raw.githubusercontent.com/looneytkp/vaultpass/main/install/setup.ps1 | iex
+```
 
-## Requirements
+---
 
-- Python 3 (`python3`)
-- python-gnupg (`pip install --user python-gnupg`)
-- git
+## 🧭 Usage
 
-*The installer will handle all dependencies!*
+```bash
+vaultpass [OPTIONS]
+```
+
+### Options:
+| Option                  | Description                                      |
+|------------------------|--------------------------------------------------|
+| `-l [ID]`              | Generate long password and save with ID          |
+| `-s [ID]`              | Generate short password and save with ID         |
+| `-c [ID]`              | Create custom password (you enter it yourself)   |
+| `-L`                   | List all saved passwords                         |
+| `-S [ID]`              | Search for saved password by ID                  |
+| `-d [ID]`              | Delete saved password by ID                      |
+| `-e [ID]`              | Edit username/email of a saved entry             |
+| `-b`                   | Backup vault to a timestamped `.gpg` file        |
+| `-r`                   | Restore vault from a previous backup             |
+| `--change-passphrase`  | Change the master passphrase                     |
+| `--update`             | Check for updates manually                       |
+| `--log`                | View action log                                  |
+| `-a`                   | Show all vaultpass functions                     |
+| `-h`, `--help`         | Show usage help                                  |
+| `--changelog`, `-c`    | View changelog                                   |
+| `-u`                   | Uninstall vaultpass                              |
+
+---
+
+## 💾 Backup & Restore
+
+- **Backup:**  
+  `vaultpass -b` — creates a backup file in `.vaultpass/backup/`
+
+- **Restore:**  
+  `vaultpass -r` — prompts you to select a backup file
+
+- **Passphrase hint** is also backed up and auto-restored after reinstall.
+
+---
+
+## 🧼 Uninstallation
+
+You can uninstall safely with:
+```bash
+vaultpass -u
+```
+Backups will be offered before deletion.
+
+---
+
+## ❤️ Credit
+
+Built by [looneytkp](https://github.com/looneytkp)  
+Project: [vaultpass](https://github.com/looneytkp/vaultpass)
+
+---
+
+## 📜 License
+
+MIT License — Free for personal or commercial use.
