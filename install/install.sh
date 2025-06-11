@@ -19,7 +19,32 @@ install_git() {
     fi
 }
 
-# Check for git
+# Function to install Python if missing
+install_python() {
+    if ! command -v python3 >/dev/null; then
+        echo "[*] Python 3 not found. Attempting to install..."
+        if command -v apt-get >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y python3 python3-pip
+        elif command -v yum >/dev/null; then
+            sudo yum install -y python3 python3-pip
+        elif command -v brew >/dev/null; then
+            brew install python
+        else
+            echo "[X] Cannot install Python 3 automatically. Please install and rerun."
+            exit 1
+        fi
+    fi
+}
+
+# Function to install python-gnupg if missing
+install_python_gnupg() {
+    python3 -c "import gnupg" 2>/dev/null || {
+        echo "[*] Installing python-gnupg..."
+        python3 -m pip install --user python-gnupg
+    }
+}
+
+# Git check and install
 if ! command -v git >/dev/null; then
     install_git
 else
@@ -32,6 +57,9 @@ else
         brew upgrade git
     fi
 fi
+
+install_python
+install_python_gnupg
 
 # Install or update mkpasswd
 if [ -d "$INSTALL_DIR/.git" ]; then
