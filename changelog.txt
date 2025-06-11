@@ -1,6 +1,7 @@
 v1.4
+- Renamed project and scripts to vaultpass for system compatibility
 - Switched update/check system to pure git (no more version.txt)
-- Added --update CLI flag to mkpasswd (Bash & PowerShell)
+- Added --update CLI flag to vaultpass (Bash & PowerShell)
 - Integrated vault.py and password_gen.py for encryption & password gen
 - Cleaned up code, help, and multi-ID/user features
 
@@ -26,7 +27,7 @@ v1.1
 - Help and changelog commands
 
 v1.0
-- First public release
+- First public release (as mkpasswd)
 - Interactive password generator
 - Basic vault save/search/list/delete
 - Basic backup and restore
