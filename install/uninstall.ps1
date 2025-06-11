@@ -18,17 +18,43 @@ if (Test-Path $vaultFile) {
     }
 }
 
-# Remove .mkpasswd directory
+# Remove mkpasswd directory
 if (Test-Path $installDir) {
     Remove-Item $installDir -Recurse -Force
     Write-Host "[*] Removed $installDir"
 }
 
-# Remove launcher
+# Remove launcher from WindowsApps
 $batPath = "$binDir\mkpasswd.bat"
 if (Test-Path $batPath) {
     Remove-Item $batPath -Force
     Write-Host "[*] Removed mkpasswd launcher from WindowsApps"
+}
+
+# Optionally uninstall git
+if (Get-Command git.exe -ErrorAction SilentlyContinue) {
+    $unGit = Read-Host "Do you want to uninstall Git for Windows as well? (y/N)"
+    if ($unGit -eq "y" -or $unGit -eq "Y") {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Host "[*] Uninstalling Git for Windows using winget..."
+            winget uninstall --id Git.Git -e --accept-package-agreements --accept-source-agreements
+        } else {
+            Write-Host "[!] winget not available. Please uninstall Git manually via Control Panel or Settings."
+        }
+    }
+}
+
+# Optionally uninstall Python
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    $unPy = Read-Host "Do you want to uninstall Python as well? (y/N)"
+    if ($unPy -eq "y" -or $unPy -eq "Y") {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Host "[*] Uninstalling Python using winget..."
+            winget uninstall --id Python.Python.3 -e --accept-package-agreements --accept-source-agreements
+        } else {
+            Write-Host "[!] winget not available. Please uninstall Python manually via Control Panel or Settings."
+        }
+    }
 }
 
 Write-Host "[✔] mkpasswd and all related files removed." -ForegroundColor Green
