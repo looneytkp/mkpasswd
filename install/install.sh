@@ -4,58 +4,60 @@ set -e
 INSTALL_DIR="$HOME/.mkpasswd"
 REPO_URL="https://github.com/looneytkp/mkpasswd.git"
 
-# Function for Termux environment
-install_termux_deps() {
-    echo "[*] Detected Termux environment."
-    pkg install -y git python
-    pip install --user python-gnupg
-}
-
-# Function for standard Linux/Mac
-install_linux_deps() {
-    # Git
-    if ! command -v git >/dev/null; then
-        echo "[*] 'git' not found. Attempting to install..."
-        if command -v apt-get >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y git
-        elif command -v yum >/dev/null; then
-            sudo yum install -y git
-        elif command -v brew >/dev/null; then
-            brew install git
-        else
-            echo "[X] Cannot install git automatically. Please install git and rerun."
-            exit 1
-        fi
+install_deps() {
+    # Termux (Android)
+    if [ -n "$PREFIX" ] && grep -qi termux <<< "$PREFIX"; then
+        echo "[*] Detected Termux (Android)."
+        pkg install -y git python
+        pip install --user python-gnupg
+        return
     fi
 
-    # Python
-    if ! command -v python3 >/dev/null; then
-        echo "[*] Python 3 not found. Attempting to install..."
-        if command -v apt-get >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y python3 python3-pip
-        elif command -v yum >/dev/null; then
-            sudo yum install -y python3 python3-pip
-        elif command -v brew >/dev/null; then
-            brew install python
-        else
-            echo "[X] Cannot install Python 3 automatically. Please install and rerun."
+    # macOS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "[*] Detected macOS."
+        if ! command -v brew >/dev/null; then
+            echo "[X] Homebrew not found. Please install Homebrew and rerun."
             exit 1
         fi
-    fi
-
-    # python-gnupg
-    python3 -c "import gnupg" 2>/dev/null || {
-        echo "[*] Installing python-gnupg..."
+        brew install git python
         python3 -m pip install --user python-gnupg
-    }
+        return
+    fi
+
+    # Standard Linux distros
+    if command -v apt-get >/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v dnf >/dev/null; then
+        sudo dnf install -y git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v yum >/dev/null; then
+        sudo yum install -y git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v pacman >/dev/null; then
+        sudo pacman -Sy --noconfirm git python python-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v apk >/dev/null; then
+        sudo apk add git python3 py3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v zypper >/dev/null; then
+        sudo zypper install -y git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v xbps-install >/dev/null; then
+        sudo xbps-install -Sy git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    elif command -v eopkg >/dev/null; then
+        sudo eopkg install -y git python3 python3-pip
+        python3 -m pip install --user python-gnupg
+    else
+        echo "[X] Unsupported Linux distribution. Please install git, python3, and python-gnupg manually."
+        exit 1
+    fi
 }
 
-# Detect Termux (Android)
-if grep -qi termux <<< "$PREFIX"; then
-    install_termux_deps
-else
-    install_linux_deps
-fi
+install_deps
 
 # Install or update mkpasswd
 if [ -d "$INSTALL_DIR/.git" ]; then
