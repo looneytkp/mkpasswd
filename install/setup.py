@@ -28,17 +28,13 @@ def run_quiet(cmd, cwd=None):
     kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     if cwd:
         kwargs["cwd"] = cwd
-    if isinstance(cmd, str):
-        result = subprocess.run(cmd, shell=True, **kwargs)
-    else:
-        result = subprocess.run(cmd, **kwargs)
+    result = subprocess.run(cmd, **kwargs)
     return result.returncode == 0
 
 def detect_shell_rc():
     shell = os.environ.get("SHELL", "")
     home = os.path.expanduser("~")
     rc_files = []
-
     if platform.system() == "Darwin":
         zshrc = os.path.join(home, ".zshrc")
         bash_profile = os.path.join(home, ".bash_profile")
@@ -67,7 +63,6 @@ def add_bin_to_path(bin_dir):
     export_line = f'export PATH="{bin_dir}:$PATH"\n'
     updated = False
     for rc_file in rc_files:
-        # Only add if not already present
         already = False
         if os.path.exists(rc_file):
             with open(rc_file, "r") as f:
@@ -78,9 +73,9 @@ def add_bin_to_path(bin_dir):
                 f.write(f'\n# Added by Vaultpass installer\n{export_line}')
             updated = True
     if updated:
-        print(f"[✓] Updated PATH: {bin_dir} in {', '.join(rc_files)}")
+        print(f"[✓] PATH updated: {bin_dir}")
     else:
-        print(f"[✓] PATH already includes: {bin_dir}")
+        print(f"[✓] PATH already set.")
 
 def install_python_packages(packages):
     try:
@@ -88,15 +83,20 @@ def install_python_packages(packages):
     except ImportError:
         print("[X] pip not found. Please install pip for your Python environment.")
         sys.exit(1)
+    actually_installed = False
     for pkg in packages:
         try:
             __import__(pkg)
         except ImportError:
+            if not actually_installed:
+                print("[*] Installing required packages for Vaultpass:")
+                actually_installed = True
             print(f"[!] Installing '{pkg}' package...")
             rc = run_quiet([sys.executable, "-m", "pip", "install", "--user", pkg])
             if not rc:
                 print(f"[X] Failed to install '{pkg}'. Please install it manually.")
                 sys.exit(1)
+    return actually_installed
 
 def main():
     py_exec = ensure_python3()
@@ -108,10 +108,10 @@ def main():
     BIN_DIR = os.path.join(HOME, ".local", "bin")
     LAUNCHER = "vaultpass.py" if is_windows() else "vaultpass"
     LOCAL_BIN = os.path.join(BIN_DIR, LAUNCHER)
-    INSTALL_SCRIPTS_DIR = os.path.join(INSTALL_DIR, "install")
 
     fresh_install = False
-    # Case 1: .vaultpass does not exist
+
+    # 1. Fresh install
     if not os.path.exists(INSTALL_DIR):
         print("[*] Installing Vaultpass...")
         rc = run_quiet(["git", "clone", REPO_URL, INSTALL_DIR])
@@ -120,7 +120,7 @@ def main():
             sys.exit(1)
         fresh_install = True
 
-    # Case 2: .vaultpass exists but is not a git repo
+    # 2. Detected previous (non-git) install
     elif not os.path.isdir(os.path.join(INSTALL_DIR, ".git")):
         print("[*] Previous Vaultpass installation detected.")
         print("[*] Cleaning up previous Vaultpass installation...")
@@ -132,7 +132,7 @@ def main():
             sys.exit(1)
         fresh_install = True
 
-    # Case 3: .vaultpass exists and is a git repo
+    # 3. Update existing install
     else:
         print("[*] Updating Vaultpass...")
         rc = run_quiet(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
@@ -142,7 +142,7 @@ def main():
             print("[X] Failed to update Vaultpass. Please check your internet connection or repo status.")
             sys.exit(1)
 
-    for d in [CORE_DIR, SYSTEM_DIR, BACKUP_DIR, BIN_DIR, INSTALL_SCRIPTS_DIR]:
+    for d in [CORE_DIR, SYSTEM_DIR, BACKUP_DIR, BIN_DIR]:
         os.makedirs(d, exist_ok=True)
 
     # Ensure core scripts are present
@@ -152,32 +152,42 @@ def main():
         print("[X] Missing core scripts. Please check the repository.")
         sys.exit(1)
 
+    # Copy launcher (overwrites old one)
     shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), LOCAL_BIN)
     try:
         os.chmod(LOCAL_BIN, 0o755)
     except Exception:
         pass
 
+    # Shebang check/skip
     with open(LOCAL_BIN, "r") as f:
         lines = f.readlines()
     shebang = f"#!{py_exec}\n"
     if not lines[0].startswith("#!"):
         lines.insert(0, shebang)
-    else:
-        lines[0] = shebang
-    with open(LOCAL_BIN, "w") as f:
-        f.writelines(lines)
+        with open(LOCAL_BIN, "w") as f:
+            f.writelines(lines)
 
     add_bin_to_path(BIN_DIR)
 
+    # Touch metadata files
     for meta in ["passphrase_hint.txt", "vaultpass.log", ".last_update_check"]:
         open(os.path.join(SYSTEM_DIR, meta), "a").close()
 
-    # Install required Python packages
-    print("[*] Installing required packages for Vaultpass:")
+    # Install required Python packages only if missing
     install_python_packages(['requests'])
 
-    print("[✓] Vaultpass installed successfully.")
+    # Print installed version if available
+    version_txt = os.path.join(INSTALL_DIR, "version.txt")
+    version = None
+    if os.path.exists(version_txt):
+        with open(version_txt) as vf:
+            version = vf.read().strip()
+    if version:
+        print(f"[✓] Vaultpass {version} installed successfully.")
+    else:
+        print("[✓] Vaultpass installed successfully.")
+
     print("[!] Run 'vaultpass -h' to begin.")
 
 if __name__ == "__main__":
