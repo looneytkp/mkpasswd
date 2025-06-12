@@ -29,9 +29,10 @@ VAULT_PY = os.path.join(CORE_DIR, "vault.py")
 PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
+BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
 
 def make_centered_banner(version=VERSION):
-    width = 39
+    width = 37
     line1 = "🔑  VAULTPASS  🔒"
     line2 = f"Secure Password Manager {version}"
     def pad(s):
@@ -76,11 +77,11 @@ def get_latest_changelog(changelog_file, version):
     start, out = False, []
     for line in lines:
         if line.strip().startswith("Version "):
-            if start: break  # end after our version's block
+            if start: break
             start = line.strip().startswith(target)
             continue
         if start:
-            if line.strip():  # skip empty lines
+            if line.strip():
                 out.append(line.strip(" \n"))
     return out
 
@@ -98,9 +99,7 @@ def print_changelog_box(version, lines, width=41):
     print("   └" + "─" * width + "┘")
 
 def show_changelog(version=VERSION):
-    print()
-    print(banner)
-    print()
+    print("\n" + banner + "\n")
     lines = get_latest_changelog(CHANGELOG_FILE, version)
     if not lines:
         print("[!] No changelog found.")
@@ -109,9 +108,7 @@ def show_changelog(version=VERSION):
     print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
 
 def show_features():
-    print()
-    print(banner)
-    print()
+    print("\n" + banner + "\n")
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -123,9 +120,7 @@ Vaultpass Functions:
 """)
 
 def show_log():
-    print()
-    print(banner)
-    print()
+    print("\n" + banner + "\n")
     if not os.path.exists(LOG_FILE):
         print("[!] No log file found.")
         return
@@ -216,9 +211,7 @@ def change_passphrase():
         print("[X] Invalid passphrase. Try again.")
 
 def uninstall():
-    print()
-    print(banner)
-    print()
+    print("\n" + banner + "\n")
     confirm = input("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
@@ -283,6 +276,9 @@ def check_for_updates(force=False):
             if rc.returncode == 0:
                 with open(VERSION_FILE, "w") as f:
                     f.write(remote_version)
+                # Overwrite launcher!
+                shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
+                os.chmod(BIN_PATH, 0o755)
                 print(f"[✓] Vaultpass updated to {remote_version}.")
             else:
                 print("[X] Failed to update Vaultpass.")
@@ -330,6 +326,8 @@ def check_for_updates(force=False):
                     stderr=subprocess.DEVNULL
                 )
                 if rc.returncode == 0:
+                    shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
+                    os.chmod(BIN_PATH, 0o755)
                     print("[✓] Vaultpass updated with small changes.")
                 else:
                     print("[X] Failed to update Vaultpass.")
@@ -338,9 +336,7 @@ def check_for_updates(force=False):
     open(LAST_UPDATE_FILE, "a").close()
 
 def show_help():
-    print()
-    print(banner)
-    print()
+    print("\n" + banner + "\n")
     print("""Usage: vaultpass [OPTIONS]
 Options:
   -l, --long [ID ...]        Generate long password(s)
@@ -412,10 +408,7 @@ def main():
         restore_passwords()
         return
     if args.edit:
-        if args.edit:
-            edit_entry(args.edit)
-        else:
-            print("Usage: vaultpass -e ID")
+        edit_entry(args.edit)
         return
     if args.change_passphrase:
         change_passphrase()
@@ -433,11 +426,7 @@ def main():
         uninstall()
         return
 
-    # Add additional handling for add/search/delete/generate logic as you need
-
     show_help()
 
 if __name__ == "__main__":
     main()
-
-#testing
