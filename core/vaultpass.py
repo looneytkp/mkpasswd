@@ -7,6 +7,12 @@ import sys
 import shutil
 import time
 
+try:
+    import requests
+except ImportError:
+    print("[X] Missing 'requests' library. Please install it with 'pip install requests'.")
+    sys.exit(1)
+
 VERSION = "v1.6"
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
@@ -21,6 +27,7 @@ BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 VAULT_PY = os.path.join(CORE_DIR, "vault.py")
 PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
+LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 
 def log_action(msg):
     with open(LOG_FILE, "a") as f:
@@ -161,7 +168,109 @@ def uninstall():
     else:
         print("[!] Uninstall cancelled.")
 
+def check_for_updates(force=False):
+    # 3-day auto-check logic
+    now = int(time.time())
+    need_update = False
+    if force:
+        need_update = True
+    elif os.path.exists(LAST_UPDATE_FILE):
+        last = int(os.path.getmtime(LAST_UPDATE_FILE))
+        diff_days = (now - last) // 86400
+        if diff_days >= 3:
+            need_update = True
+    else:
+        need_update = True
+
+    if not need_update:
+        return  # Don't show unless forced or 3+ days
+
+    print("[*] Checking for Vaultpass updates...")
+
+    try:
+        with open(VERSION_FILE) as f:
+            local_version = f.read().strip()
+    except FileNotFoundError:
+        local_version = "unknown"
+
+    try:
+        r = requests.get(REMOTE_VERSION_URL, timeout=5)
+        r.raise_for_status()
+        remote_version = r.text.strip()
+    except Exception:
+        print("[X] Could not fetch remote version info.")
+        open(LAST_UPDATE_FILE, "a").close()
+        return
+
+    if local_version != remote_version:
+        print("[!] New version available!")
+        print(f"[!] Currently installed: {local_version}")
+        print(f"[!] Latest: {remote_version}")
+        print("[*] Changelog for latest version:")
+        # Show top of changelog
+        if os.path.exists(CHANGELOG_FILE):
+            with open(CHANGELOG_FILE) as f:
+                shown = 0
+                for line in f:
+                    print(line.rstrip())
+                    shown += 1
+                    if shown >= 15: break
+        print("[*] Full changelog: https://github.com/looneytkp/vaultpass")
+        update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
+        if update in ("y", ""):
+            print("[*] Updating Vaultpass…")
+            rc = subprocess.run(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+            if rc.returncode == 0:
+                with open(VERSION_FILE, "w") as f:
+                    f.write(remote_version)
+                print(f"[✓] Vaultpass updated to {remote_version}.")
+            else:
+                print("[X] Failed to update Vaultpass.")
+        open(LAST_UPDATE_FILE, "a").close()
+        return
+    else:
+        # Minor updates: compare git commit hashes
+        try:
+            local_commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=INSTALL_DIR, text=True
+            ).strip()
+            subprocess.run(["git", "fetch", "origin", "main"], cwd=INSTALL_DIR,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            remote_commit = subprocess.check_output(
+                ["git", "rev-parse", "origin/main"], cwd=INSTALL_DIR, text=True
+            ).strip()
+        except Exception:
+            print("[✓] Vaultpass is up to date.")
+            open(LAST_UPDATE_FILE, "a").close()
+            return
+
+        if local_commit != remote_commit:
+            try:
+                remote_msg = subprocess.check_output(
+                    ["git", "log", "-1", "--pretty=%B", "origin/main"],
+                    cwd=INSTALL_DIR, text=True
+                ).splitlines()[0]
+            except Exception:
+                remote_msg = "(minor update)"
+            print(f"[!] Minor updates available: {remote_msg}")
+            update = input("[?] Update? (Y/n): ").strip().lower()
+            if update in ("y", ""):
+                print("[*] Updating Vaultpass…")
+                rc = subprocess.run(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+                if rc.returncode == 0:
+                    print("[✓] Vaultpass updated to latest code (version unchanged).")
+                else:
+                    print("[X] Failed to update Vaultpass.")
+        else:
+            print("[✓] Vaultpass is up to date.")
+    # Update timestamp so we don't check again too soon
+    open(LAST_UPDATE_FILE, "a").close()
+
 def main():
+    # 3-day auto update check, unless --update
+    if "--update" not in sys.argv:
+        check_for_updates()
+
     parser = argparse.ArgumentParser(
         description=f"Vaultpass - Secure Password Manager {VERSION}",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -199,7 +308,7 @@ def main():
         show_log()
         return
     if args.update:
-        print("[*] Update logic not yet implemented in this sample.")
+        check_for_updates(force=True)
         return
     if args.backup:
         backup_passwords()
