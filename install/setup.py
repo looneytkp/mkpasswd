@@ -100,17 +100,14 @@ def main():
     for d in [CORE_DIR, SYSTEM_DIR, BACKUP_DIR, BIN_DIR, INSTALL_SCRIPTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
+    # Ensure core scripts are present
     if not (os.path.isfile(os.path.join(CORE_DIR, "vault.py")) and
             os.path.isfile(os.path.join(CORE_DIR, "password_gen.py")) and
             os.path.isfile(os.path.join(CORE_DIR, "vaultpass.py"))):
         print("[X] Missing core scripts. Please check the repository.")
         sys.exit(1)
 
-    # Uninstall script bugfix: only copy if not the same file
-    uninstall_src = os.path.join(INSTALL_DIR, "install", "uninstall.py")
-    uninstall_dst = os.path.join(INSTALL_SCRIPTS_DIR, "uninstall.py")
-    if os.path.isfile(uninstall_src) and os.path.abspath(uninstall_src) != os.path.abspath(uninstall_dst):
-        shutil.copy2(uninstall_src, uninstall_dst)
+    # No need to copy uninstall.py at all—it's already in place after clone!
 
     shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), LOCAL_BIN)
     try:
