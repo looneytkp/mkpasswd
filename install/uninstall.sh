@@ -12,7 +12,7 @@ if [[ "$answer" =~ ^[Yy]$ || -z "$answer" ]]; then
         sed -i '/export PATH="\$HOME\/.local\/bin:\$PATH"/d' "$HOME/.bashrc"
     fi
     rm -rf "$PROJECT_DIR"
-    echo "[✔] Vaultpass and all related files have been completely removed."
+    echo "[✓] Vaultpass and all related files have been completely removed."
 else
     echo "[!] Uninstall cancelled."
 fi
