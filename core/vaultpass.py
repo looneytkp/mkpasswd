@@ -7,6 +7,21 @@ HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
+PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
+HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
+LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
+CHANGELOG_FILE = os.path.join(SYSTEM_DIR, "changelog.txt")
+VERSION_FILE = os.path.join(SYSTEM_DIR, "version.txt")
+BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
+BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
+
+def get_current_version():
+    if os.path.exists(VERSION_FILE):
+        with open(VERSION_FILE) as f:
+            return f.read().strip()
+    return "0.0.0"
 
 # ----------- Ensure __init__.py Exists -----------
 def ensure_init_py():
@@ -44,6 +59,17 @@ import uninstall
 
 # ----------- Main Entry Point -----------
 def main():
+    # 3-day auto update check on startup
+    update.check_for_updates(
+        current_version=get_current_version(),
+        version_file=VERSION_FILE,
+        changelog_file=CHANGELOG_FILE,
+        install_dir=INSTALL_DIR,
+        core_dir=CORE_DIR,
+        bin_path=BIN_PATH,
+        last_update_file=LAST_UPDATE_FILE,
+        remote_version_url=REMOTE_VERSION_URL
+    )
     cli.run_cli()
 
 if __name__ == "__main__":
