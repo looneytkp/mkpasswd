@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# vaultpass - Interactive Password Manager (v1.5)
+# Vaultpass - Interactive Password Manager (v1.5)
 
 set -e
 
@@ -15,6 +15,7 @@ VERSION_FILE="$INSTALL_DIR/version.txt"
 REMOTE_VERSION_URL="https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 VAULT_PY="$CORE_DIR/vault.py"
 PASSGEN_PY="$CORE_DIR/password_gen.py"
+BIN_PATH="/usr/local/bin/vaultpass" # Only if you use a global symlink, otherwise remove.
 
 log_action() {
     mkdir -p "$SYSTEM_DIR"
@@ -38,17 +39,21 @@ require_passphrase_setup() {
     fi
 }
 
-show_latest_changelog() {
-    ver="${1#v}"  # Remove any 'v' prefix
-    # Show only the block for the requested version (up to next Version or EOF)
-    awk "/^Version[[:space:]]*$ver/,/^Version[[:space:]]*[0-9]+\.[0-9]+/" "$CHANGELOG_FILE" | sed '$d'
+show_changelog() {
+    ver="${1:-$(cat "$VERSION_FILE")}"
+    ver="${ver#v}"
+    echo "Latest Changelog:"
+    awk -v ver="$ver" '
+        $0 ~ "^Version[[:space:]]*"ver"$" { printing=1; next }
+        printing && $0 ~ /^Version[[:space:]]*[0-9]+\.[0-9]+/ { exit }
+        printing
+    ' "$CHANGELOG_FILE"
+    echo "Full changelog: https://github.com/looneytkp/vaultpass"
 }
 
 check_for_updates() {
     LAST_UPDATE_FILE="$SYSTEM_DIR/.last_update_check"
     NEED_UPDATE=0
-    VERSION_FILE="$INSTALL_DIR/version.txt"
-    REMOTE_VERSION_URL="https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 
     # Ensure local version.txt exists (fallback v1.5 if missing)
     [ -f "$VERSION_FILE" ] || echo "v1.5" > "$VERSION_FILE"
@@ -63,7 +68,7 @@ check_for_updates() {
     fi
 
     if [ "$NEED_UPDATE" -eq 1 ]; then
-        echo "[*] Checking for vaultpass updates..."
+        echo "[*] Checking for Vaultpass updates..."
         local_version=$(cat "$VERSION_FILE")
         remote_version=$(curl -fsSL "$REMOTE_VERSION_URL" 2>/dev/null || echo "$local_version")
         if [ "$local_version" != "$remote_version" ]; then
@@ -71,13 +76,15 @@ check_for_updates() {
             echo "[!] Currently installed: $local_version"
             echo "[!] Latest: $remote_version"
             echo "[*] Changelog for latest version:"
-            show_latest_changelog "$remote_version"
+            show_changelog "$remote_version"
             read -p "Do you want to update now? (Y/n): " u
             if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then
-                (cd "$INSTALL_DIR" && git pull origin main)
+                echo "[*] Updating Vaultpass…"
+                (cd "$INSTALL_DIR" && git pull origin main > /dev/null 2>&1 &)
+                wait
                 echo "$remote_version" > "$VERSION_FILE"
-                echo "[✔] vaultpass updated to $remote_version."
-                log_action "vaultpass updated to $remote_version"
+                echo "[✔] Vaultpass updated to $remote_version."
+                log_action "Vaultpass updated to $remote_version"
             fi
         fi
         touch "$LAST_UPDATE_FILE"
@@ -86,7 +93,7 @@ check_for_updates() {
 
 show_help() {
     cat <<EOF
-vaultpass - Secure Password Manager
+Vaultpass - Secure Password Manager
 Usage: vaultpass [OPTIONS]
 Options:
   -l [ID ...]        Generate long password(s)
@@ -120,15 +127,6 @@ Vaultpass Functions:
 EOF
 }
 
-show_changelog() {
-    # Show just the latest block, not the whole file
-    local ver
-    ver=$(cat "$VERSION_FILE")
-    echo "Latest Changelog:"
-    show_latest_changelog "$ver"
-    echo "Full changelog: https://github.com/looneytkp/vaultpass"
-}
-
 show_log() {
     cat "$LOG_FILE"
 }
@@ -149,7 +147,7 @@ restore_passwords() {
     read -p "Enter backup filename to restore: " f
     cp "$INSTALL_DIR/backup/$f" "$PASS_FILE"
     [ -f "$INSTALL_DIR/backup/passphrase_hint.txt" ] && cp "$INSTALL_DIR/backup/passphrase_hint.txt" "$HINT_FILE"
-    echo "[✔] Restored vault from backup."
+    echo "[✔] Restored Vaultpass vault from backup."
     log_action "Vault restored from $f"
 }
 
@@ -184,21 +182,15 @@ change_passphrase() {
 }
 
 uninstall() {
-    echo "[*] Uninstalling vaultpass..."
-    if [ -f "$PASS_FILE" ]; then
-        read -p "Backup your vault before uninstalling? (Y/n): " b
-        [[ "$b" =~ ^[Yy]$ || -z "$b" ]] && backup_passwords
-    fi
-    read -p "Remove all vaultpass files? (Y/n): " conf
+    read -p "Uninstall Vaultpass? (Y/n): " conf
     if [[ "$conf" =~ ^[Yy]$ || -z "$conf" ]]; then
         rm -rf "$INSTALL_DIR"
-        rm -f "$BIN_PATH"
-        echo "[✔] vaultpass and data removed."
-        log_action "vaultpass uninstalled"
+        [ -n "$BIN_PATH" ] && rm -f "$BIN_PATH"
+        echo "[✔] Vaultpass uninstalled."
+        exit 0
     else
         echo "Uninstall cancelled."
     fi
-    exit 0
 }
 
 update_now() {
