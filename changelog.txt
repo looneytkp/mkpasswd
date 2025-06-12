@@ -1,3 +1,13 @@
+Version 1.6
+- Help (-h/--help) shows version, includes all flag aliases, and is more readable
+- --uninstall/-u nukes all Vaultpass data, binaries, and the repo folder itself, keeps nothing
+- Changelog, backup, restore, and passphrase prompts updated to new output conventions
+- Edit, add, delete, and search outputs now match new format and are more user-friendly
+- Update check shows when Vaultpass is already up to date
+- All “Vaultpass” echoes use capital V and consistent style
+- All unnecessary output from git, python, and package installs hidden—only relevant info shown.
+- Password generator rewritten.
+
 Version 1.5
 - Renamed from mkpasswd to vaultpass (conflict-free command)
 - Restructured directory to: ~/.vaultpass/{core,system,backup}
