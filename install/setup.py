@@ -32,7 +32,7 @@ def run_quiet(cmd, cwd=None):
         result = subprocess.run(cmd, shell=True, **kwargs)
     else:
         result = subprocess.run(cmd, **kwargs)
-    return result
+    return result.returncode == 0
 
 def detect_shell_rc():
     shell = os.environ.get("SHELL", "")
@@ -65,21 +65,41 @@ def add_bin_to_path(bin_dir):
         return
     rc_files = detect_shell_rc()
     export_line = f'export PATH="{bin_dir}:$PATH"\n'
+    updated = False
     for rc_file in rc_files:
         # Only add if not already present
+        already = False
         if os.path.exists(rc_file):
             with open(rc_file, "r") as f:
                 if bin_dir in f.read():
-                    continue
-        with open(rc_file, "a") as f:
-            f.write(f'\n# Added by Vaultpass installer\n{export_line}')
-    print(f"[✓] Added {bin_dir} to your PATH in: {', '.join(rc_files)}")
+                    already = True
+        if not already:
+            with open(rc_file, "a") as f:
+                f.write(f'\n# Added by Vaultpass installer\n{export_line}')
+            updated = True
+    if updated:
+        print(f"[✓] Updated PATH: {bin_dir} in {', '.join(rc_files)}")
+    else:
+        print(f"[✓] PATH already includes: {bin_dir}")
+
+def install_python_packages(packages):
+    try:
+        import pip
+    except ImportError:
+        print("[X] pip not found. Please install pip for your Python environment.")
+        sys.exit(1)
+    for pkg in packages:
+        try:
+            __import__(pkg)
+        except ImportError:
+            print(f"[!] Installing '{pkg}' package...")
+            rc = run_quiet([sys.executable, "-m", "pip", "install", "--user", pkg])
+            if not rc:
+                print(f"[X] Failed to install '{pkg}'. Please install it manually.")
+                sys.exit(1)
 
 def main():
-    print("[*] Installing or updating Vaultpass...")
-
     py_exec = ensure_python3()
-
     HOME = os.path.expanduser("~") if not is_windows() else os.environ.get("USERPROFILE", os.path.expanduser("~"))
     INSTALL_DIR = os.path.join(HOME, ".vaultpass")
     CORE_DIR = os.path.join(INSTALL_DIR, "core")
@@ -90,12 +110,37 @@ def main():
     LOCAL_BIN = os.path.join(BIN_DIR, LAUNCHER)
     INSTALL_SCRIPTS_DIR = os.path.join(INSTALL_DIR, "install")
 
-    if os.path.isdir(os.path.join(INSTALL_DIR, ".git")):
-        print("[*] Updating Vaultpass...")
-        run_quiet(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+    fresh_install = False
+    # Case 1: .vaultpass does not exist
+    if not os.path.exists(INSTALL_DIR):
+        print("[*] Installing Vaultpass...")
+        rc = run_quiet(["git", "clone", REPO_URL, INSTALL_DIR])
+        if not rc:
+            print("[X] Failed to install Vaultpass. Please check your internet connection or repo.")
+            sys.exit(1)
+        fresh_install = True
+
+    # Case 2: .vaultpass exists but is not a git repo
+    elif not os.path.isdir(os.path.join(INSTALL_DIR, ".git")):
+        print("[*] Previous Vaultpass installation detected.")
+        print("[*] Cleaning up previous Vaultpass installation...")
+        shutil.rmtree(INSTALL_DIR, ignore_errors=True)
+        print("[*] Installing Vaultpass...")
+        rc = run_quiet(["git", "clone", REPO_URL, INSTALL_DIR])
+        if not rc:
+            print("[X] Failed to install Vaultpass. Please check your internet connection or repo.")
+            sys.exit(1)
+        fresh_install = True
+
+    # Case 3: .vaultpass exists and is a git repo
     else:
-        print("[*] Fresh install of Vaultpass...")
-        run_quiet(["git", "clone", REPO_URL, INSTALL_DIR])
+        print("[*] Updating Vaultpass...")
+        rc = run_quiet(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+        if rc:
+            print("[✓] Vaultpass updated successfully.")
+        else:
+            print("[X] Failed to update Vaultpass. Please check your internet connection or repo status.")
+            sys.exit(1)
 
     for d in [CORE_DIR, SYSTEM_DIR, BACKUP_DIR, BIN_DIR, INSTALL_SCRIPTS_DIR]:
         os.makedirs(d, exist_ok=True)
@@ -106,8 +151,6 @@ def main():
             os.path.isfile(os.path.join(CORE_DIR, "vaultpass.py"))):
         print("[X] Missing core scripts. Please check the repository.")
         sys.exit(1)
-
-    # No need to copy uninstall.py at all—it's already in place after clone!
 
     shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), LOCAL_BIN)
     try:
@@ -130,11 +173,9 @@ def main():
     for meta in ["passphrase_hint.txt", "vaultpass.log", ".last_update_check"]:
         open(os.path.join(SYSTEM_DIR, meta), "a").close()
 
-    try:
-        import requests
-    except ImportError:
-        print("[!] Python 'requests' package not found. Installing (may prompt for password)...")
-        run_quiet([py_exec, "-m", "pip", "install", "--user", "requests"])
+    # Install required Python packages
+    print("[*] Installing required packages for Vaultpass:")
+    install_python_packages(['requests'])
 
     print("[✓] Vaultpass installed successfully.")
     print("[!] Run 'vaultpass -h' to begin.")
