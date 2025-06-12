@@ -247,12 +247,14 @@ def check_for_updates(force=False):
 
     print("[*] Checking for Vaultpass updates...")
 
+    # Read local version
     try:
         with open(VERSION_FILE) as f:
             local_version = f.read().strip()
     except FileNotFoundError:
         local_version = "unknown"
 
+    # Get remote version
     try:
         r = requests.get(REMOTE_VERSION_URL, timeout=5)
         r.raise_for_status()
@@ -262,6 +264,7 @@ def check_for_updates(force=False):
         open(LAST_UPDATE_FILE, "a").close()
         return
 
+    # Major update (version change)
     if local_version != remote_version:
         print(f"[!] Latest: {remote_version}")
         print("[*] Changelog for latest version:\n")
@@ -327,7 +330,7 @@ def check_for_updates(force=False):
                     stderr=subprocess.DEVNULL
                 )
                 if rc.returncode == 0:
-                    print("[✓] Vaultpass updated to latest code (version unchanged).")
+                    print("[✓] Vaultpass updated with small changes.")
                 else:
                     print("[X] Failed to update Vaultpass.")
         else:
