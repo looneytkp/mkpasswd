@@ -14,15 +14,7 @@ except ImportError:
     sys.exit(1)
 
 def parse_ver(verstr):
-    # Accepts "1.9.0" or "v1.9.0" etc.
     return tuple(map(int, verstr.strip().lstrip("vV").split(".")))
-
-def get_current_version():
-    VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
-    if os.path.exists(VERSION_FILE):
-        with open(VERSION_FILE) as f:
-            return f.read().strip()
-    return "0.0.0"
 
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
@@ -39,6 +31,13 @@ PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+
+def get_current_version():
+    if os.path.exists(VERSION_FILE):
+        with open(VERSION_FILE) as f:
+            return f.read().strip()
+    return "0.0.0"
+
 CURRENT_VERSION = get_current_version()
 
 def make_centered_banner(version):
@@ -78,7 +77,6 @@ def require_passphrase_setup():
             print("💡 Hint:", f.read().strip())
 
 def get_latest_changelog(changelog_file, version):
-    # Only fetches section matching 'Version X.Y.Z'
     try:
         with open(changelog_file, "r") as f:
             lines = f.readlines()
@@ -91,16 +89,18 @@ def get_latest_changelog(changelog_file, version):
             if start: break
             start = line.strip().startswith(target)
             continue
-        if start:
-            if line.strip():
-                out.append(line.strip(" \n"))
+        if start and line.strip():
+            out.append(line.strip(" \n"))
     return out
 
 def print_changelog_box(version, lines, width=55):
     print("   ┌" + "─" * width + "┐")
     title = f"Vaultpass v{version}:"
     print(f"   │ {title.ljust(width)}│")
-    for line in lines:
+    for idx, line in enumerate(lines):
+        if idx >= 20:
+            print(f"   │ {'[...truncated. See full changelog.]'.ljust(width)}│")
+            break
         msg = line.lstrip("- ").capitalize()
         wrapped = textwrap.wrap(msg, width=width-2)
         if wrapped:
@@ -266,14 +266,36 @@ def check_for_updates(force=False):
         open(LAST_UPDATE_FILE, "a").close()
         return
 
-    # Major update (version change)
-    if parse_ver(local_version) < parse_ver(remote_version):
-        print(f"[!] Latest: v{remote_version}")
-        print("[*] Changelog for latest version:\n")
+    # Always fetch remote commit for minor update detection
+    try:
+        local_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=INSTALL_DIR, text=True,
+            stderr=subprocess.DEVNULL
+        ).strip()
+        subprocess.run(
+            ["git", "fetch", "origin", "main"],
+            cwd=INSTALL_DIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        remote_commit = subprocess.check_output(
+            ["git", "rev-parse", "origin/main"], cwd=INSTALL_DIR, text=True,
+            stderr=subprocess.DEVNULL
+        ).strip()
+    except Exception:
+        local_commit = remote_commit = ""
+
+    # Version or commit update
+    version_update = parse_ver(local_version) < parse_ver(remote_version)
+    commit_update = (local_commit and remote_commit and local_commit != remote_commit)
+
+    if version_update:
+        print(f"[!] New version: v{remote_version}")
         lines = get_latest_changelog(CHANGELOG_FILE, remote_version)
-        print_changelog_box(remote_version, lines)
+        if lines:
+            print_changelog_box(remote_version, lines)
         print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
-        update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
+        update = input("[?] Update? (Y/n): ").strip().lower()
         if update in ("y", ""):
             print("[*] Updating Vaultpass…")
             rc = subprocess.run(
@@ -292,56 +314,40 @@ def check_for_updates(force=False):
                 print("[X] Failed to update Vaultpass.")
         open(LAST_UPDATE_FILE, "a").close()
         return
-    else:
-        # Minor updates: compare git commit hashes
+
+    elif commit_update:
+        # Only show commit message as changelog if version not bumped
         try:
-            local_commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], cwd=INSTALL_DIR, text=True,
+            remote_msg = subprocess.check_output(
+                ["git", "log", "-1", "--pretty=%B", "origin/main"],
+                cwd=INSTALL_DIR, text=True,
                 stderr=subprocess.DEVNULL
-            ).strip()
-            subprocess.run(
-                ["git", "fetch", "origin", "main"],
+            ).splitlines()[0]
+        except Exception:
+            remote_msg = "(minor update)"
+        print(f"[!] New version: {remote_msg}")
+        update = input("[?] Update? (Y/n): ").strip().lower()
+        if update in ("y", ""):
+            print("[*] Updating Vaultpass…")
+            rc = subprocess.run(
+                ["git", "pull", "origin", "main"],
                 cwd=INSTALL_DIR,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            remote_commit = subprocess.check_output(
-                ["git", "rev-parse", "origin/main"], cwd=INSTALL_DIR, text=True,
-                stderr=subprocess.DEVNULL
-            ).strip()
-        except Exception:
-            print("[✓] Vaultpass is up to date.")
-            open(LAST_UPDATE_FILE, "a").close()
-            return
+            if rc.returncode == 0:
+                shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
+                os.chmod(BIN_PATH, 0o755)
+                print("[✓] Vaultpass minor update applied.")
+            else:
+                print("[X] Failed to update Vaultpass.")
+        open(LAST_UPDATE_FILE, "a").close()
+        return
 
-        if local_commit != remote_commit:
-            try:
-                remote_msg = subprocess.check_output(
-                    ["git", "log", "-1", "--pretty=%B", "origin/main"],
-                    cwd=INSTALL_DIR, text=True,
-                    stderr=subprocess.DEVNULL
-                ).splitlines()[0]
-            except Exception:
-                remote_msg = "(minor update)"
-            print(f"[!] Minor updates available: {remote_msg}")
-            update = input("[?] Update? (Y/n): ").strip().lower()
-            if update in ("y", ""):
-                print("[*] Updating Vaultpass…")
-                rc = subprocess.run(
-                    ["git", "pull", "origin", "main"],
-                    cwd=INSTALL_DIR,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                if rc.returncode == 0:
-                    shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
-                    os.chmod(BIN_PATH, 0o755)
-                    print("[✓] Vaultpass minor update applied.")
-                else:
-                    print("[X] Failed to update Vaultpass.")
-        else:
-            print("[✓] Vaultpass is up to date.")
-    open(LAST_UPDATE_FILE, "a").close()
+    else:
+        print("[✓] Vaultpass is up to date.")
+        open(LAST_UPDATE_FILE, "a").close()
+        return
 
 def show_help():
     print(banner)
