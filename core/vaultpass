@@ -15,8 +15,7 @@ REMOTE_VERSION_URL="https://raw.githubusercontent.com/looneytkp/vaultpass/main/v
 VAULT_PY="$CORE_DIR/vault.py"
 PASSGEN_PY="$CORE_DIR/password_gen.py"
 
-# Read version
-[ -f "$VERSION_FILE" ] || echo "v1.5" > "$VERSION_FILE"
+[ -f "$VERSION_FILE" ] || echo "v1.6" > "$VERSION_FILE"
 VERSION="$(cat "$VERSION_FILE")"
 
 log_action() {
@@ -81,7 +80,7 @@ check_for_updates() {
                 echo "[*] Updating Vaultpass…"
                 (cd "$CORE_DIR/.." && git pull origin main > /dev/null 2>&1)
                 echo "$remote_version" > "$VERSION_FILE"
-                echo "[✔] Vaultpass updated to $remote_version."
+                echo "[✓] Vaultpass updated to $remote_version."
                 log_action "Vaultpass updated to $remote_version"
             fi
         else
@@ -154,7 +153,7 @@ restore_passwords() {
     read -p "[?] Enter backup filename to restore: " f
     cp "$INSTALL_DIR/backup/$f" "$PASS_FILE"
     [ -f "$INSTALL_DIR/backup/passphrase_hint.txt" ] && cp "$INSTALL_DIR/backup/passphrase_hint.txt" "$HINT_FILE"
-    echo "[✔] Restored Vaultpass vault from backup."
+    echo "[✓] Restored Vaultpass vault from backup."
     log_action "Vault restored from $f"
 }
 
@@ -171,7 +170,7 @@ edit_entry() {
         sed -i "s|^$ID:[^|]*|$ID:|$new_user|" "$PASS_FILE.tmp"
         python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
         rm "$PASS_FILE.tmp"
-        echo "[✔] Username/email updated for $ID."
+        echo "[✓] Username/email updated for $ID."
         log_action "Edited entry for $ID"
     else
         echo "[X] ID not found"
@@ -259,7 +258,7 @@ case "$1" in
             echo "$ID:|$user|$pwd|$info" >> "$PASS_FILE.tmp"
             python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
             rm "$PASS_FILE.tmp"
-            echo "[✔] Saved password for $ID."
+            echo "[✓] Saved password for $ID."
             log_action "Saved password for $ID"
         done ;;
     -c|--custom) require_passphrase_setup; check_for_updates; shift
@@ -271,7 +270,7 @@ case "$1" in
             echo "$ID:|$user|$pwd|$info" >> "$PASS_FILE.tmp"
             python3 "$VAULT_PY" encrypt "$PASS_FILE.tmp" "$PASS_FILE"
             rm "$PASS_FILE.tmp"
-            echo "[✔] Saved custom password for $ID."
+            echo "[✓] Saved custom password for $ID."
             log_action "Saved custom password for $ID"
         done ;;
     -u|--uninstall)
