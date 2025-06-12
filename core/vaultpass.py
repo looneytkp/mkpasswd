@@ -263,7 +263,12 @@ def check_for_updates(force=False):
         update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
         if update in ("y", ""):
             print("[*] Updating Vaultpass…")
-            rc = subprocess.run(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+            rc = subprocess.run(
+                ["git", "pull", "origin", "main"],
+                cwd=INSTALL_DIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
             if rc.returncode == 0:
                 with open(VERSION_FILE, "w") as f:
                     f.write(remote_version)
@@ -276,12 +281,18 @@ def check_for_updates(force=False):
         # Minor updates: compare git commit hashes
         try:
             local_commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], cwd=INSTALL_DIR, text=True
+                ["git", "rev-parse", "HEAD"], cwd=INSTALL_DIR, text=True,
+                stderr=subprocess.DEVNULL
             ).strip()
-            subprocess.run(["git", "fetch", "origin", "main"], cwd=INSTALL_DIR,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                ["git", "fetch", "origin", "main"],
+                cwd=INSTALL_DIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
             remote_commit = subprocess.check_output(
-                ["git", "rev-parse", "origin/main"], cwd=INSTALL_DIR, text=True
+                ["git", "rev-parse", "origin/main"], cwd=INSTALL_DIR, text=True,
+                stderr=subprocess.DEVNULL
             ).strip()
         except Exception:
             print("[✓] Vaultpass is up to date.")
@@ -292,7 +303,8 @@ def check_for_updates(force=False):
             try:
                 remote_msg = subprocess.check_output(
                     ["git", "log", "-1", "--pretty=%B", "origin/main"],
-                    cwd=INSTALL_DIR, text=True
+                    cwd=INSTALL_DIR, text=True,
+                    stderr=subprocess.DEVNULL
                 ).splitlines()[0]
             except Exception:
                 remote_msg = "(minor update)"
@@ -300,7 +312,12 @@ def check_for_updates(force=False):
             update = input("[?] Update? (Y/n): ").strip().lower()
             if update in ("y", ""):
                 print("[*] Updating Vaultpass…")
-                rc = subprocess.run(["git", "pull", "origin", "main"], cwd=INSTALL_DIR)
+                rc = subprocess.run(
+                    ["git", "pull", "origin", "main"],
+                    cwd=INSTALL_DIR,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
                 if rc.returncode == 0:
                     print("[✓] Vaultpass updated to latest code (version unchanged).")
                 else:
