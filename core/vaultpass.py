@@ -7,7 +7,6 @@ HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
-# (add any others as needed)
 
 # ----------- Ensure __init__.py Exists -----------
 def ensure_init_py():
@@ -19,18 +18,32 @@ def ensure_init_py():
 
 ensure_init_py()  # Always run this at startup
 
+# ----------- Check Required Modules Exist -----------
+REQUIRED_MODULES = [
+    "cli.py",
+    "update.py",
+    "changelog.py",
+    "password_gen.py",
+    "config.py",
+    "uninstall.py"
+]
+
+missing = [f for f in REQUIRED_MODULES if not os.path.isfile(os.path.join(CORE_DIR, f))]
+if missing:
+    print(f"[X] Missing required core files: {', '.join(missing)}")
+    sys.exit(1)
+
 # ----------- Import Modular Code -----------
-# Now you can import your modules (assuming you’ve split up code):
 sys.path.insert(0, CORE_DIR)
 import cli
 import update
 import changelog
+import password_gen
 import config
-# ... add imports as you modularize
+import uninstall
 
 # ----------- Main Entry Point -----------
 def main():
-    # Parse CLI and dispatch actions
     cli.run_cli()
 
 if __name__ == "__main__":
