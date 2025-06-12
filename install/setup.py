@@ -47,7 +47,7 @@ def clone_or_update_repo():
                 print("[X] Install aborted.")
                 sys.exit(1)
         else:
-            print("[*] Updating Vaultpass repo...")
+            print("[*] Updating Vaultpass...")
             subprocess.run(
                 ["git", "pull", "origin", "main"],
                 cwd=INSTALL_DIR,
@@ -82,9 +82,9 @@ def update_path():
     if not added:
         with open(bashrc, "a") as f:
             f.write(f'\n# Vaultpass: Add user bin to PATH\nexport PATH="{BIN_DIR}:$PATH"\n')
-        print(f"[✓] Vaultpass PATH is set.")
+        print(f"[✓] Vaultpass PATH set.")
     else:
-        print(f"[✓] Vaultpass PATH is set.")
+        print(f"[✓] Vaultpass PATH set.")
 
 def main():
     ensure_python3()
