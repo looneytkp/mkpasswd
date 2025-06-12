@@ -63,7 +63,7 @@ check_for_updates() {
         last=$(date -r "$LAST_UPDATE_FILE" +%s)
         now=$(date +%s)
         diff=$(( (now - last) / 86400 ))
-        [ "$diff" -ge 7 ] && NEED_UPDATE=1
+        [ "$diff" -ge 3 ] && NEED_UPDATE=1
     else
         NEED_UPDATE=1
     fi
@@ -94,7 +94,6 @@ check_for_updates() {
             remote_commit=$(cd "$CORE_DIR/.." && git rev-parse origin/main 2>/dev/null)
 
             if [ -n "$local_commit" ] && [ -n "$remote_commit" ] && [ "$local_commit" != "$remote_commit" ]; then
-                # Get the latest remote commit message
                 remote_message=$(cd "$CORE_DIR/.." && git log -1 --pretty=%B origin/main | head -1)
                 echo "[!] Minor updates available: $remote_message"
                 read -p "[?] Update? (Y/n): " u
@@ -234,8 +233,14 @@ update_now() {
     exit 0
 }
 
-# Main logic
+# --------------------------
+#  AUTO-CHECK FOR UPDATES
+# --------------------------
+check_for_updates
 
+# --------------------------
+#  MAIN LOGIC
+# --------------------------
 case "$1" in
     -h|--help) show_help ;;
     -a|--about) show_features ;;
@@ -246,7 +251,7 @@ case "$1" in
     -r|--restore) restore_passwords ;;
     -e|--edit) edit_entry "$@" ;;
     --change-passphrase) change_passphrase ;;
-    -L|--list) require_passphrase_setup; check_for_updates
+    -L|--list) require_passphrase_setup
         python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
         while IFS= read -r line; do
             echo "[✓] $line"
@@ -254,7 +259,7 @@ case "$1" in
         rm "$PASS_FILE.tmp"
         log_action "Listed all passwords"
         ;;
-    -S|--search) require_passphrase_setup; check_for_updates; shift
+    -S|--search) require_passphrase_setup; shift
         for ID in "$@"; do
             python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
             entry=$(grep -w "$ID:" "$PASS_FILE.tmp" || echo "[X] ID $ID not found")
@@ -262,7 +267,7 @@ case "$1" in
             rm "$PASS_FILE.tmp"
             log_action "Searched for $ID"
         done ;;
-    -d|--delete) require_passphrase_setup; check_for_updates; shift
+    -d|--delete) require_passphrase_setup; shift
         for ID in "$@"; do
             python3 "$VAULT_PY" decrypt "$PASS_FILE" "$PASS_FILE.tmp"
             grep -vw "$ID:" "$PASS_FILE.tmp" > "$PASS_FILE.tmp2"
@@ -271,7 +276,7 @@ case "$1" in
             echo "[✓] Deleted $ID."
             log_action "Deleted $ID"
         done ;;
-    -l|--long|-s|--short) require_passphrase_setup; check_for_updates; shift
+    -l|--long|-s|--short) require_passphrase_setup; shift
         mode="short"; [ "$1" = "-l" ] || [ "$1" = "--long" ] && mode="long"
         for ID in "$@"; do
             pwd=$(python3 "$PASSGEN_PY" $mode)
@@ -285,7 +290,7 @@ case "$1" in
             echo "[✓] Saved password for $ID."
             log_action "Saved password for $ID"
         done ;;
-    -c|--custom) require_passphrase_setup; check_for_updates; shift
+    -c|--custom) require_passphrase_setup; shift
         for ID in "$@"; do
             read -p "[?] Enter password for $ID: " pwd
             read -p "[?] Enter username/email for $ID (optional): " user
