@@ -11,6 +11,8 @@ PASS_FILE="$SYSTEM_DIR/passwords.gpg"
 HINT_FILE="$SYSTEM_DIR/passphrase_hint.txt"
 LOG_FILE="$SYSTEM_DIR/vaultpass.log"
 CHANGELOG_FILE="$INSTALL_DIR/changelog.txt"
+VERSION_FILE="$INSTALL_DIR/version.txt"
+REMOTE_VERSION_URL="https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 VAULT_PY="$CORE_DIR/vault.py"
 PASSGEN_PY="$CORE_DIR/password_gen.py"
 
@@ -39,6 +41,12 @@ require_passphrase_setup() {
 check_for_updates() {
     LAST_UPDATE_FILE="$SYSTEM_DIR/.last_update_check"
     NEED_UPDATE=0
+    VERSION_FILE="$INSTALL_DIR/version.txt"
+    REMOTE_VERSION_URL="https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
+
+    # Ensure local version.txt exists (fallback v1.5 if missing)
+    [ -f "$VERSION_FILE" ] || echo "v1.5" > "$VERSION_FILE"
+
     if [ -f "$LAST_UPDATE_FILE" ]; then
         last=$(date -r "$LAST_UPDATE_FILE" +%s)
         now=$(date +%s)
@@ -50,20 +58,20 @@ check_for_updates() {
 
     if [ "$NEED_UPDATE" -eq 1 ]; then
         echo "[*] Checking for vaultpass updates..."
-        (cd "$INSTALL_DIR" && git fetch origin main && git remote update > /dev/null 2>&1)
-        local_commit=$(cd "$INSTALL_DIR" && git rev-parse HEAD)
-        remote_commit=$(cd "$INSTALL_DIR" && git rev-parse origin/main)
-        if [ "$local_commit" != "$remote_commit" ]; then
+        local_version=$(cat "$VERSION_FILE")
+        remote_version=$(curl -fsSL "$REMOTE_VERSION_URL" 2>/dev/null || echo "$local_version")
+        if [ "$local_version" != "$remote_version" ]; then
             echo "[!] New version available!"
-            echo "[!] Currently installed: $local_commit"
-            echo "[!] Latest: $remote_commit"
+            echo "[!] Currently installed: $local_version"
+            echo "[!] Latest: $remote_version"
             echo "[*] Changelog for latest version:"
             cat "$CHANGELOG_FILE" | head -20
             read -p "Do you want to update now? (Y/n): " u
             if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then
                 (cd "$INSTALL_DIR" && git pull origin main)
-                echo "[✔] vaultpass updated."
-                log_action "vaultpass updated via auto-check"
+                echo "$remote_version" > "$VERSION_FILE"
+                echo "[✔] vaultpass updated to $remote_version."
+                log_action "vaultpass updated to $remote_version"
             fi
         fi
         touch "$LAST_UPDATE_FILE"
