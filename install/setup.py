@@ -82,9 +82,9 @@ def update_path():
     if not added:
         with open(bashrc, "a") as f:
             f.write(f'\n# Vaultpass: Add user bin to PATH\nexport PATH="{BIN_DIR}:$PATH"\n')
-        print(f"[✓] Vaultpass PATH set.")
+        print(f"[✓] Vaultpass PATH added to .bashrc.")
     else:
-        print(f"[✓] Vaultpass PATH set.")
+        print(f"[✓] Vaultpass PATH already set.")
 
 def main():
     ensure_python3()
