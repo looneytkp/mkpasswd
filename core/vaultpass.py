@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import sys
 import subprocess
@@ -13,22 +14,32 @@ except ImportError:
     print("[X] Missing 'requests' library. Please install it with 'pip install requests'.")
     sys.exit(1)
 
-VERSION = "v1.7"
-HOME = os.path.expanduser("~")
-INSTALL_DIR = os.path.join(HOME, ".vaultpass")
+# === BULLETPROOF VERSION HANDLING ===
+DEFAULT_VERSION = "v1.7"
+INSTALL_DIR = os.path.join(os.path.expanduser("~"), ".vaultpass")
+VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
+
+def get_version():
+    try:
+        with open(VERSION_FILE) as f:
+            return f.read().strip()
+    except Exception:
+        return DEFAULT_VERSION
+
+VERSION = get_version()
+
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
 PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
 HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
 CHANGELOG_FILE = os.path.join(INSTALL_DIR, "changelog.txt")
-VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
 BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 VAULT_PY = os.path.join(CORE_DIR, "vault.py")
 PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
-BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+BIN_PATH = os.path.join(os.path.expanduser("~"), ".local", "bin", "vaultpass")
 
 def make_centered_banner(version=VERSION):
     width = 37
@@ -56,7 +67,7 @@ def require_passphrase_setup():
         print("[*] First run: You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
         print("  - If you forget it, your passwords cannot be recovered.")
-        hint = read_input_with_abort("[*] Enter a passphrase hint (for your eyes only, can be blank): ")
+        hint = input("[*] Enter a passphrase hint (for your eyes only, can be blank): ")
         os.makedirs(SYSTEM_DIR, exist_ok=True)
         with open(HINT_FILE, "w") as f:
             f.write(hint)
@@ -65,60 +76,6 @@ def require_passphrase_setup():
     if os.path.exists(HINT_FILE):
         with open(HINT_FILE) as f:
             print("💡 Hint:", f.read().strip())
-
-# --------- ESC-ABORT INPUT HANDLER ---------
-def read_input_with_abort(prompt):
-    print(prompt, end="", flush=True)
-    try:
-        # Unix
-        import termios, tty
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            chars = []
-            while True:
-                ch = sys.stdin.read(1)
-                if ch == "\x1b":
-                    print("\n[✓] Vaultpass aborted")
-                    sys.exit(0)
-                elif ch in ["\r", "\n"]:
-                    print()
-                    return "".join(chars)
-                else:
-                    print(ch, end="", flush=True)
-                    chars.append(ch)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    except ImportError:
-        # Windows
-        import msvcrt
-        chars = []
-        while True:
-            ch = msvcrt.getch()
-            if ch == b"\x1b":
-                print("\n[✓] Vaultpass aborted")
-                sys.exit(0)
-            elif ch in [b"\r", b"\n"]:
-                print()
-                return b"".join(chars).decode()
-            else:
-                print(ch.decode(), end="", flush=True)
-                chars.append(ch)
-
-# --------- USERNAME/EMAIL REQUIRED ---------
-def prompt_username_email(ID):
-    tries = 0
-    while tries < 3:
-        user = read_input_with_abort(f"[?] Username/email for {ID}: ")
-        if user.strip():
-            return user
-        tries += 1
-        if tries < 3:
-            print("[!] Can't save a password without an ID.")
-        else:
-            print("[X] Abort")
-            sys.exit(1)
 
 def get_latest_changelog(changelog_file, version):
     try:
@@ -199,7 +156,7 @@ def restore_passwords():
     print("[*] Backups found:")
     for f in backups:
         print(f"     - {f}")
-    chosen = read_input_with_abort("[?] Enter backup filename to restore: ").strip()
+    chosen = input("[?] Enter backup filename to restore: ").strip()
     backup_path = os.path.join(BACKUP_DIR, chosen)
     if not os.path.exists(backup_path):
         print("[X] Backup not found.")
@@ -222,7 +179,7 @@ def edit_entry(entry_id):
         if line.startswith(f"{entry_id}:"):
             old_user = line.split("|")[1]
             print(f"[?] Current username/email: {old_user}")
-            new_user = prompt_username_email(entry_id)
+            new_user = input("[?] Enter new username/email: ")
             parts = line.split("|")
             parts[1] = new_user
             new_line = "|".join(parts)
@@ -248,8 +205,8 @@ def change_passphrase():
     if rc.returncode == 0:
         print("[✓] Verified.")
         while True:
-            new1 = read_input_with_abort("[?] Set new passphrase: ")
-            new2 = read_input_with_abort("[?] Verify new passphrase: ")
+            new1 = input("[?] Set new passphrase: ")
+            new2 = input("[?] Verify new passphrase: ")
             if new1 == new2:
                 p = subprocess.run(["python3", VAULT_PY, "change_passphrase", PASS_FILE], input=new1, text=True)
                 if p.returncode == 0:
@@ -265,10 +222,10 @@ def change_passphrase():
 
 def uninstall():
     print("\n" + banner + "\n")
-    confirm = read_input_with_abort("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
+    confirm = input("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
-        bin_file = os.path.join(HOME, ".local", "bin", "vaultpass")
+        bin_file = os.path.join(os.path.expanduser("~"), ".local", "bin", "vaultpass")
         if os.path.exists(bin_file):
             os.remove(bin_file)
         print("[✓] Vaultpass is uninstalled.")
@@ -298,7 +255,7 @@ def check_for_updates(force=False):
         with open(VERSION_FILE) as f:
             local_version = f.read().strip()
     except FileNotFoundError:
-        local_version = "unknown"
+        local_version = DEFAULT_VERSION
 
     # Get remote version
     try:
@@ -317,7 +274,7 @@ def check_for_updates(force=False):
         lines = get_latest_changelog(CHANGELOG_FILE, remote_version)
         print_changelog_box(remote_version, lines)
         print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
-        update = read_input_with_abort("[?] Do you want to update now? (Y/n): ").strip().lower()
+        update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
         if update in ("y", ""):
             print("[*] Updating Vaultpass…")
             rc = subprocess.run(
@@ -329,6 +286,7 @@ def check_for_updates(force=False):
             if rc.returncode == 0:
                 with open(VERSION_FILE, "w") as f:
                     f.write(remote_version)
+                # Overwrite launcher!
                 shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
                 os.chmod(BIN_PATH, 0o755)
                 print(f"[✓] Vaultpass updated to {remote_version}.")
@@ -368,7 +326,7 @@ def check_for_updates(force=False):
             except Exception:
                 remote_msg = "(minor update)"
             print(f"[!] Minor updates available: {remote_msg}")
-            update = read_input_with_abort("[?] Update? (Y/n): ").strip().lower()
+            update = input("[?] Update? (Y/n): ").strip().lower()
             if update in ("y", ""):
                 print("[*] Updating Vaultpass…")
                 rc = subprocess.run(
@@ -409,69 +367,63 @@ Options:
   --changelog                Show latest changelog
 """)
 
-def generate_password(length):
-    import random
-    import string
-    chars = string.ascii_letters + string.digits + '!@#$%^&*_+-='
-    while True:
-        password = ''.join(random.SystemRandom().choice(chars) for _ in range(length))
-        if (any(c.islower() for c in password) and
-            any(c.isupper() for c in password) and
-            any(c.isdigit() for c in password) and
-            any(c in '!@#$%^&*_+-=' for c in password)):
-            return password
-
-def save_password(ID, password, user, info):
-    require_passphrase_setup()
-    subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
-    with open(f"{PASS_FILE}.tmp", "a") as f:
-        f.write(f"{ID}:|{user}|{password}|{info}\n")
-    subprocess.run(["python3", VAULT_PY, "encrypt", f"{PASS_FILE}.tmp", PASS_FILE])
-    os.remove(f"{PASS_FILE}.tmp")
-    print(f"[✓] Saved password for {ID}.")
-    log_action(f"Saved password for {ID}")
-
 def main():
     # 3-day auto update check, unless --update
     if "--update" not in sys.argv:
         check_for_updates()
 
-    # Simple manual flag parsing to keep old style behavior
-    argv = sys.argv[1:]
-    if not argv or argv[0] in ("-h", "--help"):
+    parser = argparse.ArgumentParser(
+        description="",
+        formatter_class=argparse.RawTextHelpFormatter,
+        add_help=False
+    )
+    parser.add_argument("-l", "--long", nargs="+")
+    parser.add_argument("-s", "--short", nargs="+")
+    parser.add_argument("-c", "--custom", nargs="+")
+    parser.add_argument("-L", "--list", action="store_true")
+    parser.add_argument("-S", "--search", nargs="+")
+    parser.add_argument("-d", "--delete", nargs="+")
+    parser.add_argument("-e", "--edit")
+    parser.add_argument("--change-passphrase", action="store_true")
+    parser.add_argument("-b", "--backup", action="store_true")
+    parser.add_argument("-r", "--restore", action="store_true")
+    parser.add_argument("--log", action="store_true")
+    parser.add_argument("-u", "--uninstall", action="store_true")
+    parser.add_argument("--update", action="store_true")
+    parser.add_argument("-a", "--about", action="store_true")
+    parser.add_argument("-h", "--help", action="store_true")
+    parser.add_argument("--changelog", action="store_true")
+
+    args = parser.parse_args()
+
+    if args.help:
         show_help()
         return
-    if argv[0] in ("-a", "--about"):
-    show_features()
+    if args.about:
+        show_features()
         return
-    if argv[0] == "--changelog":
+    if args.changelog:
         show_changelog()
         return
-    if argv[0] == "--log":
+    if args.log:
         show_log()
         return
-    if argv[0] == "--update":
+    if args.update:
         check_for_updates(force=True)
         return
-    if argv[0] in ("-b", "--backup"):
+    if args.backup:
         backup_passwords()
         return
-    if argv[0] in ("-r", "--restore"):
+    if args.restore:
         restore_passwords()
         return
-    if argv[0] in ("-u", "--uninstall"):
-        uninstall()
+    if args.edit:
+        edit_entry(args.edit)
         return
-    if argv[0] in ("--change-passphrase",):
+    if args.change_passphrase:
         change_passphrase()
         return
-    if argv[0] in ("-e", "--edit"):
-        if len(argv) < 2:
-            print("[X] Usage: vaultpass -e ID")
-            return
-        edit_entry(argv[1])
-        return
-    if argv[0] in ("-L", "--list"):
+    if args.list:
         require_passphrase_setup()
         subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
         with open(f"{PASS_FILE}.tmp") as f:
@@ -480,88 +432,10 @@ def main():
         os.remove(f"{PASS_FILE}.tmp")
         log_action("Listed all passwords")
         return
-    if argv[0] in ("-S", "--search"):
-        require_passphrase_setup()
-        if len(argv) < 2:
-            print("[X] Usage: vaultpass -S ID [ID2 ...]")
-            return
-        for ID in argv[1:]:
-            subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
-            found = False
-            with open(f"{PASS_FILE}.tmp") as f:
-                for line in f:
-                    if line.startswith(f"{ID}:"):
-                        print("[✓]", line.strip())
-                        found = True
-                        break
-            os.remove(f"{PASS_FILE}.tmp")
-            if not found:
-                print(f"[X] ID {ID} not found")
-            log_action(f"Searched for {ID}")
-        return
-    if argv[0] in ("-d", "--delete"):
-        require_passphrase_setup()
-        if len(argv) < 2:
-            print("[X] Usage: vaultpass -d ID [ID2 ...]")
-            return
-        for ID in argv[1:]:
-            subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
-            lines = []
-            deleted = False
-            with open(f"{PASS_FILE}.tmp") as f:
-                for line in f:
-                    if line.startswith(f"{ID}:"):
-                        deleted = True
-                    else:
-                        lines.append(line)
-            with open(f"{PASS_FILE}.tmp", "w") as f:
-                f.writelines(lines)
-            subprocess.run(["python3", VAULT_PY, "encrypt", f"{PASS_FILE}.tmp", PASS_FILE])
-            os.remove(f"{PASS_FILE}.tmp")
-            if deleted:
-                print(f"[✓] Deleted {ID}.")
-                log_action(f"Deleted {ID}")
-            else:
-                print(f"[X] ID {ID} not found")
+    if args.uninstall:
+        uninstall()
         return
 
-    # Password generation logic (long/short/custom)
-    if argv[0] in ("-l", "--long", "-s", "--short", "-c", "--custom"):
-        mode = argv[0]
-        IDs = argv[1:]
-        if not IDs:
-            print(f"[X] Usage: vaultpass {mode} ID [ID2 ...]")
-            return
-        for ID in IDs:
-            if mode in ("-l", "--long"):
-                password = generate_password(16)
-            elif mode in ("-s", "--short"):
-                password = generate_password(8)
-            else:
-                # Custom mode: ask user to enter password
-                password = read_input_with_abort(f"[?] Password for {ID}: ")
-            if mode != "-c" and mode != "--custom":
-                print(f"[?] Password for {ID}: {password}")
-
-            # Username/email (required, up to 3 tries, esc-abort possible)
-            user = None
-            tries = 0
-            while tries < 3:
-                user = read_input_with_abort(f"[?] Username/email for {ID}: ")
-                if user.strip():
-                    break
-                tries += 1
-                if tries < 3:
-                    print("[!] Can't save a password without an ID.")
-                else:
-                    print("[X] Abort")
-                    sys.exit(1)
-            # Optional info
-            info = read_input_with_abort(f"[?] Info [Optional]: ")
-            save_password(ID, password, user, info)
-        return
-
-    # If nothing matches, show help
     show_help()
 
 if __name__ == "__main__":
