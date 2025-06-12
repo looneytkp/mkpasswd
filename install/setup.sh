@@ -1,78 +1,44 @@
 #!/bin/bash
-# vaultpass - Setup Script (Installer/Uninstaller)
-set -e
 
+REPO_URL="https://github.com/looneytkp/vaultpass.git"
 INSTALL_DIR="$HOME/.vaultpass"
-BIN_PATH="$HOME/.local/bin/vaultpass"
+CORE_DIR="$INSTALL_DIR/core"
+SYSTEM_DIR="$INSTALL_DIR/system"
+BACKUP_DIR="$INSTALL_DIR/backup"
+BIN_DIR="$HOME/.local/bin"
+LAUNCHER="vaultpass"
+LOCAL_BIN="$BIN_DIR/$LAUNCHER"
 
-# Function to install dependencies (distro-aware)
-install_dependencies() {
-    echo "[*] Checking required packages..."
-    PKG_MANAGER=""
-    if [ -x "$(command -v apt-get)" ]; then
-        PKG_MANAGER="sudo apt-get install -y"
-    elif [ -x "$(command -v dnf)" ]; then
-        PKG_MANAGER="sudo dnf install -y"
-    elif [ -x "$(command -v pacman)" ]; then
-        PKG_MANAGER="sudo pacman -Syu --noconfirm"
-    elif [ -x "$(command -v pkg)" ]; then
-        PKG_MANAGER="pkg install -y"
-    else
-        echo "[X] Unsupported package manager. Install git and python3 manually."
-        return
-    fi
+# Create necessary folders
+mkdir -p "$CORE_DIR" "$SYSTEM_DIR" "$BACKUP_DIR" "$BIN_DIR"
 
-    if ! command -v git >/dev/null 2>&1; then
-        echo "[*] Installing git..."
-        $PKG_MANAGER git
-    fi
-    if ! command -v python3 >/dev/null 2>&1; then
-        echo "[*] Installing python3..."
-        $PKG_MANAGER python3
-    fi
-}
-
-# Function to install vaultpass
-install_vaultpass() {
-    echo "[*] Installing vaultpass..."
-    rm -rf "$INSTALL_DIR"
-    git clone https://github.com/looneytkp/vaultpass "$INSTALL_DIR"
-    mkdir -p "$HOME/.local/bin"
-    cp "$INSTALL_DIR/core/vaultpass" "$BIN_PATH"
-    chmod +x "$BIN_PATH"
-    echo "[✔] Installed. Run with: vaultpass"
-}
-
-# Function to uninstall vaultpass
-uninstall_vaultpass() {
-    echo "[*] Uninstalling vaultpass..."
-    read -p "Do you want to delete all vaultpass files? (Y/n): " conf
-    if [[ "$conf" =~ ^[Yy]$ || -z "$conf" ]]; then
-        rm -rf "$INSTALL_DIR"
-        rm -f "$BIN_PATH"
-        echo "[✔] vaultpass uninstalled."
-    else
-        echo "Uninstall cancelled."
-    fi
-    exit 0
-}
-
-# --- Main Logic ---
-
-# Check if vaultpass is already installed (folder or command exists)
-if [ -d "$INSTALL_DIR" ] || command -v vaultpass >/dev/null 2>&1; then
-    echo "vaultpass is already installed."
-    echo "What would you like to do?"
-    echo "1) Reinstall vaultpass"
-    echo "2) Uninstall vaultpass"
-    echo "3) Cancel"
-    read -p "[?] Choose an option (1/2/3): " opt
-    case $opt in
-        1) install_dependencies && install_vaultpass ;;
-        2) uninstall_vaultpass ;;
-        *) echo "Cancelled."; exit 0 ;;
-    esac
+# Clone or update repo
+if [ -d "$INSTALL_DIR/.git" ]; then
+  echo "[*] Updating vaultpass..."
+  git -C "$INSTALL_DIR" pull origin main
 else
-    install_dependencies
-    install_vaultpass
+  echo "[*] Installing vaultpass..."
+  git clone "$REPO_URL" "$INSTALL_DIR"
 fi
+
+# Ensure core scripts are in place
+if [ ! -f "$CORE_DIR/vault.py" ] || [ ! -f "$CORE_DIR/password_gen.py" ]; then
+  echo "[X] Missing core scripts. Please check the repository."
+  exit 1
+fi
+
+# Copy launcher to bin and make executable
+cp "$INSTALL_DIR/vaultpass" "$LOCAL_BIN"
+chmod +x "$LOCAL_BIN"
+
+# Ensure bin path is in PATH
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$HOME/.bashrc"
+  export PATH="$BIN_DIR:$PATH"
+fi
+
+# Touch metadata files
+touch "$SYSTEM_DIR/passphrase_hint.txt" "$SYSTEM_DIR/vaultpass.log" "$SYSTEM_DIR/.last_update_check"
+
+echo "[✔] vaultpass installed successfully."
+echo "[!] Run 'vaultpass -h' to begin."
