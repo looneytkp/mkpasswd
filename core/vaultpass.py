@@ -29,7 +29,7 @@ VAULT_PY = os.path.join(CORE_DIR, "vault.py")
 PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
-BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass" if os.name != "nt" else "vaultpass.py")
 
 def make_centered_banner(version=VERSION):
     width = 37
@@ -49,6 +49,7 @@ def make_centered_banner(version=VERSION):
 banner = make_centered_banner()
 
 def log_action(msg):
+    os.makedirs(SYSTEM_DIR, exist_ok=True)
     with open(LOG_FILE, "a") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
 
@@ -132,13 +133,18 @@ def backup_passwords():
     os.makedirs(BACKUP_DIR, exist_ok=True)
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = os.path.join(BACKUP_DIR, f"passwords_{timestamp}.gpg")
-    shutil.copy2(PASS_FILE, backup_file)
-    shutil.copy2(HINT_FILE, os.path.join(BACKUP_DIR, "passphrase_hint.txt"))
+    if os.path.exists(PASS_FILE):
+        shutil.copy2(PASS_FILE, backup_file)
+    if os.path.exists(HINT_FILE):
+        shutil.copy2(HINT_FILE, os.path.join(BACKUP_DIR, "passphrase_hint.txt"))
     print(f"[✓] Backup saved to {BACKUP_DIR}")
     log_action("Vault backup")
 
 def restore_passwords():
     require_passphrase_setup()
+    if not os.path.exists(BACKUP_DIR):
+        print("[!] No backups found.")
+        return
     backups = [f for f in os.listdir(BACKUP_DIR) if f.endswith(".gpg")]
     if not backups:
         print("[!] No backups found.")
@@ -151,7 +157,8 @@ def restore_passwords():
     if not os.path.exists(backup_path):
         print("[X] Backup not found.")
         return
-    shutil.copy2(backup_path, PASS_FILE)
+    if os.path.exists(backup_path):
+        shutil.copy2(backup_path, PASS_FILE)
     hint_path = os.path.join(BACKUP_DIR, "passphrase_hint.txt")
     if os.path.exists(hint_path):
         shutil.copy2(hint_path, HINT_FILE)
@@ -160,7 +167,7 @@ def restore_passwords():
 
 def edit_entry(entry_id):
     require_passphrase_setup()
-    subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
+    subprocess.run([sys.executable, VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
     with open(f"{PASS_FILE}.tmp") as f:
         lines = f.readlines()
     new_lines = []
@@ -183,7 +190,7 @@ def edit_entry(entry_id):
         return
     with open(f"{PASS_FILE}.tmp", "w") as f:
         f.writelines(new_lines)
-    subprocess.run(["python3", VAULT_PY, "encrypt", f"{PASS_FILE}.tmp", PASS_FILE])
+    subprocess.run([sys.executable, VAULT_PY, "encrypt", f"{PASS_FILE}.tmp", PASS_FILE])
     os.remove(f"{PASS_FILE}.tmp")
     print(f"[✓] Username/email updated for {entry_id}.")
     log_action(f"Edited entry for {entry_id}")
@@ -191,14 +198,14 @@ def edit_entry(entry_id):
 def change_passphrase():
     require_passphrase_setup()
     print("[?] To change passphrase, enter current passphrase: ")
-    rc = subprocess.run(["python3", VAULT_PY, "verify", PASS_FILE])
+    rc = subprocess.run([sys.executable, VAULT_PY, "verify", PASS_FILE])
     if rc.returncode == 0:
         print("[✓] Verified.")
         while True:
             new1 = input("[?] Set new passphrase: ")
             new2 = input("[?] Verify new passphrase: ")
             if new1 == new2:
-                p = subprocess.run(["python3", VAULT_PY, "change_passphrase", PASS_FILE], input=new1, text=True)
+                p = subprocess.run([sys.executable, VAULT_PY, "change_passphrase", PASS_FILE], input=new1, text=True)
                 if p.returncode == 0:
                     print("[✓] New passphrase set.")
                     log_action("Passphrase changed")
@@ -216,8 +223,10 @@ def uninstall():
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
         bin_file = os.path.join(HOME, ".local", "bin", "vaultpass")
-        if os.path.exists(bin_file):
-            os.remove(bin_file)
+        bin_file_win = os.path.join(HOME, ".local", "bin", "vaultpass.py")
+        for bf in (bin_file, bin_file_win):
+            if os.path.exists(bf):
+                os.remove(bf)
         print("[✓] Vaultpass is uninstalled.")
     else:
         print("[!] Uninstall cancelled.")
@@ -279,7 +288,7 @@ def check_for_updates(force=False):
                 # Overwrite launcher!
                 shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
                 os.chmod(BIN_PATH, 0o755)
-                print(f"[✓] Vaultpass updated to {remote_version}.")
+                print(f"[✓] Vaultpass updated to {remote_version}. Please re-run vaultpass.")
             else:
                 print("[X] Failed to update Vaultpass.")
         open(LAST_UPDATE_FILE, "a").close()
@@ -328,7 +337,7 @@ def check_for_updates(force=False):
                 if rc.returncode == 0:
                     shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
                     os.chmod(BIN_PATH, 0o755)
-                    print("[✓] Vaultpass updated with small changes.")
+                    print("[✓] Vaultpass updated with small changes. Please re-run vaultpass.")
                 else:
                     print("[X] Failed to update Vaultpass.")
         else:
@@ -387,35 +396,26 @@ def main():
     args = parser.parse_args()
 
     if args.help:
-        show_help()
-        return
+        show_help(); return
     if args.about:
-        show_features()
-        return
+        show_features(); return
     if args.changelog:
-        show_changelog()
-        return
+        show_changelog(); return
     if args.log:
-        show_log()
-        return
+        show_log(); return
     if args.update:
-        check_for_updates(force=True)
-        return
+        check_for_updates(force=True); return
     if args.backup:
-        backup_passwords()
-        return
+        backup_passwords(); return
     if args.restore:
-        restore_passwords()
-        return
+        restore_passwords(); return
     if args.edit:
-        edit_entry(args.edit)
-        return
+        edit_entry(args.edit); return
     if args.change_passphrase:
-        change_passphrase()
-        return
+        change_passphrase(); return
     if args.list:
         require_passphrase_setup()
-        subprocess.run(["python3", VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
+        subprocess.run([sys.executable, VAULT_PY, "decrypt", PASS_FILE, f"{PASS_FILE}.tmp"])
         with open(f"{PASS_FILE}.tmp") as f:
             for line in f:
                 print("[✓]", line.strip())
@@ -423,7 +423,23 @@ def main():
         log_action("Listed all passwords")
         return
     if args.uninstall:
-        uninstall()
+        uninstall(); return
+
+    # --- Placeholder: You can implement these as needed ---
+    if args.long:
+        print("[X] Long password generation not implemented yet in Python version. (Coming soon!)")
+        return
+    if args.short:
+        print("[X] Short password generation not implemented yet in Python version. (Coming soon!)")
+        return
+    if args.custom:
+        print("[X] Custom password save not implemented yet in Python version. (Coming soon!)")
+        return
+    if args.search:
+        print("[X] Search by ID not implemented yet in Python version. (Coming soon!)")
+        return
+    if args.delete:
+        print("[X] Delete by ID not implemented yet in Python version. (Coming soon!)")
         return
 
     show_help()
