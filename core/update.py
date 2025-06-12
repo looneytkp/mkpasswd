@@ -3,6 +3,7 @@
 import os
 import subprocess
 import time
+import shutil   # <-- Added
 import requests
 
 from core.cli import print_changelog_box, show_banner
