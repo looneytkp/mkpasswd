@@ -1,72 +1,118 @@
 #!/usr/bin/env python3
-import os
+"""
+config.py -- Vaultpass configuration manager
 
-# =========================
-# Vaultpass Config Handler
-# =========================
+- Ensures config file exists in ~/.vaultpass/system/vaultpassconfig
+- Loads config settings into a dictionary
+- Writes config with comments if not present
+- Provides read/update/save functions for settings
+
+Config format: key=value, with comments for each setting.
+"""
+
+import os
 
 HOME = os.path.expanduser("~")
 SYSTEM_DIR = os.path.join(HOME, ".vaultpass", "system")
-CONFIG_FILE = os.path.join(SYSTEM_DIR, "vaultpassconfig")
+CONFIG_PATH = os.path.join(SYSTEM_DIR, "vaultpassconfig")
 
-DEFAULT_CONFIG = """# Vaultpass Configuration File
-# Toggle color output (true/false)
-color = true
+# Default config with comments for clarity
+DEFAULT_CONFIG = """\
+# Vaultpass Configuration File
+# This file controls optional features and output behavior.
+# To enable/disable a feature, change the value and save.
 
-# Auto-update on launch (true/false)
-auto_update = true
+# Enable colored output (true/false)
+color=true
+
+# Check for updates every N days (default: 3)
+update_days=3
+
+# Maximum lines to show in changelog box (default: 20)
+changelog_max=20
 
 # Reserved for future settings...
+
 """
 
 def ensure_config():
-    """Create the config file with defaults if missing."""
+    """
+    Ensures the config file exists; writes default if not present.
+    """
     if not os.path.exists(SYSTEM_DIR):
         os.makedirs(SYSTEM_DIR, exist_ok=True)
-    if not os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "w") as f:
+    if not os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "w") as f:
             f.write(DEFAULT_CONFIG)
-        return True
-    return False
 
 def load_config():
-    """Load config file as a dict (simple format)."""
+    """
+    Loads the config into a dict. Ensures defaults for missing keys.
+    Ignores comments and blank lines.
+    """
     ensure_config()
     config = {}
-    with open(CONFIG_FILE) as f:
+    with open(CONFIG_PATH) as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#"): continue
+            if not line or line.startswith("#"):
+                continue
             if "=" in line:
-                k, v = line.split("=", 1)
-                config[k.strip()] = v.strip().lower()
+                key, val = line.split("=", 1)
+                config[key.strip()] = val.strip()
+    # Fill in defaults if missing
+    for line in DEFAULT_CONFIG.splitlines():
+        if "=" in line:
+            key, val = line.split("=", 1)
+            if key.strip() not in config:
+                config[key.strip()] = val.strip()
     return config
 
-def update_config(key, value):
-    """Update a single config key/value."""
+def save_config(config):
+    """
+    Saves the config dict to file, preserving comments & order.
+    """
+    # Read the template to preserve comments and order
+    lines_out = []
+    existing = {}
+    for line in DEFAULT_CONFIG.splitlines():
+        if "=" in line:
+            key, _ = line.split("=", 1)
+            val = config.get(key.strip(), None)
+            if val is not None:
+                lines_out.append(f"{key.strip()}={val}")
+            else:
+                lines_out.append(line)
+        else:
+            lines_out.append(line)
+    # Add any custom keys (not in default)
+    for k, v in config.items():
+        if f"{k}=" not in DEFAULT_CONFIG:
+            lines_out.append(f"{k}={v}")
+    # Write it out
+    with open(CONFIG_PATH, "w") as f:
+        f.write("\n".join(lines_out) + "\n")
+
+def get_config_value(key, default=None):
+    """
+    Returns the value for a key, or default if not present.
+    """
     config = load_config()
-    config[key] = str(value).lower()
-    # Write back with comments preserved at top
-    with open(CONFIG_FILE, "r") as f:
-        lines = f.readlines()
-    with open(CONFIG_FILE, "w") as f:
-        for line in lines:
-            if line.strip().startswith("#") or not line.strip():
-                f.write(line)
-            elif "=" in line:
-                k = line.split("=")[0].strip()
-                if k == key:
-                    f.write(f"{key} = {value}\n")
-                else:
-                    f.write(line)
-        # Append new key if not present
-        if key not in [l.split("=")[0].strip() for l in lines if "=" in l]:
-            f.write(f"{key} = {value}\n")
+    return config.get(key, default)
+
+def set_config_value(key, value):
+    """
+    Updates a single config value and saves to disk.
+    """
+    config = load_config()
+    config[key] = value
+    save_config(config)
 
 # Example usage
 if __name__ == "__main__":
     ensure_config()
-    conf = load_config()
-    print("Config loaded:", conf)
-    update_config("color", "false")
-    print("Color setting updated to false.")
+    config = load_config()
+    print("Vaultpass config loaded:")
+    for k, v in config.items():
+        print(f"  {k} = {v}")
+    print("\nTry set_config_value('color', 'false') to disable color.")
