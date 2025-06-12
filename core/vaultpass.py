@@ -2,8 +2,8 @@
 
 import argparse
 import os
-import subprocess
 import sys
+import subprocess
 import shutil
 import time
 import textwrap
@@ -98,7 +98,9 @@ def print_changelog_box(version, lines, width=41):
     print("   └" + "─" * width + "┘")
 
 def show_changelog(version=VERSION):
+    print()
     print(banner)
+    print()
     lines = get_latest_changelog(CHANGELOG_FILE, version)
     if not lines:
         print("[!] No changelog found.")
@@ -107,7 +109,9 @@ def show_changelog(version=VERSION):
     print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
 
 def show_features():
+    print()
     print(banner)
+    print()
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -119,7 +123,9 @@ Vaultpass Functions:
 """)
 
 def show_log():
+    print()
     print(banner)
+    print()
     if not os.path.exists(LOG_FILE):
         print("[!] No log file found.")
         return
@@ -210,7 +216,9 @@ def change_passphrase():
         print("[X] Invalid passphrase. Try again.")
 
 def uninstall():
+    print()
     print(banner)
+    print()
     confirm = input("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
@@ -326,26 +334,29 @@ def check_for_updates(force=False):
             print("[✓] Vaultpass is up to date.")
     open(LAST_UPDATE_FILE, "a").close()
 
-def show_help(parser=None):
+def show_help():
+    print()
     print(banner)
-    print("Usage: vaultpass [OPTIONS]")
-    print("Options:")
-    print("  -l, --long [ID ...]        Generate long password(s)")
-    print("  -s, --short [ID ...]       Generate short password(s)")
-    print("  -c, --custom [ID ...]      Save custom password(s)")
-    print("  -L, --list                 List all saved passwords")
-    print("  -S, --search [ID ...]      Search for passwords by ID")
-    print("  -d, --delete [ID ...]      Delete password(s) by ID")
-    print("  -e, --edit [ID]            Edit username/email")
-    print("  --change-passphrase        Change master passphrase")
-    print("  -b, --backup               Backup passwords")
-    print("  -r, --restore              Restore from backup")
-    print("  --log                      Show action log")
-    print("  -u, --uninstall            Uninstall Vaultpass")
-    print("  --update                   Check for updates now")
-    print("  -a, --about                Show all features")
-    print("  -h, --help                 Show this help")
-    print("  --changelog                Show latest changelog")
+    print()
+    print("""Usage: vaultpass [OPTIONS]
+Options:
+  -l, --long [ID ...]        Generate long password(s)
+  -s, --short [ID ...]       Generate short password(s)
+  -c, --custom [ID ...]      Save custom password(s)
+  -L, --list                 List all saved passwords
+  -S, --search [ID ...]      Search for passwords by ID
+  -d, --delete [ID ...]      Delete password(s) by ID
+  -e, --edit [ID]            Edit username/email
+  --change-passphrase        Change master passphrase
+  -b, --backup               Backup passwords
+  -r, --restore              Restore from backup
+  --log                      Show action log
+  -u, --uninstall            Uninstall Vaultpass
+  --update                   Check for updates now
+  -a, --about                Show all features
+  -h, --help                 Show this help
+  --changelog                Show latest changelog
+""")
 
 def main():
     # 3-day auto update check, unless --update
@@ -353,31 +364,31 @@ def main():
         check_for_updates()
 
     parser = argparse.ArgumentParser(
-        description=f"Vaultpass - Secure Password Manager {VERSION}",
+        description="",
         formatter_class=argparse.RawTextHelpFormatter,
         add_help=False
     )
-    parser.add_argument("-l", "--long", nargs="+", help="Generate long password(s)")
-    parser.add_argument("-s", "--short", nargs="+", help="Generate short password(s)")
-    parser.add_argument("-c", "--custom", nargs="+", help="Save custom password(s)")
-    parser.add_argument("-L", "--list", action="store_true", help="List all saved passwords")
-    parser.add_argument("-S", "--search", nargs="+", help="Search for passwords by ID")
-    parser.add_argument("-d", "--delete", nargs="+", help="Delete password(s) by ID")
-    parser.add_argument("-e", "--edit", help="Edit username/email")
-    parser.add_argument("--change-passphrase", action="store_true", help="Change master passphrase")
-    parser.add_argument("-b", "--backup", action="store_true", help="Backup passwords")
-    parser.add_argument("-r", "--restore", action="store_true", help="Restore from backup")
-    parser.add_argument("--log", action="store_true", help="Show action log")
-    parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstall Vaultpass")
-    parser.add_argument("--update", action="store_true", help="Check for updates now")
-    parser.add_argument("-a", "--about", action="store_true", help="Show all features")
-    parser.add_argument("-h", "--help", action="store_true", help="Show this help")
-    parser.add_argument("--changelog", action="store_true", help="Show latest changelog")
+    parser.add_argument("-l", "--long", nargs="+")
+    parser.add_argument("-s", "--short", nargs="+")
+    parser.add_argument("-c", "--custom", nargs="+")
+    parser.add_argument("-L", "--list", action="store_true")
+    parser.add_argument("-S", "--search", nargs="+")
+    parser.add_argument("-d", "--delete", nargs="+")
+    parser.add_argument("-e", "--edit")
+    parser.add_argument("--change-passphrase", action="store_true")
+    parser.add_argument("-b", "--backup", action="store_true")
+    parser.add_argument("-r", "--restore", action="store_true")
+    parser.add_argument("--log", action="store_true")
+    parser.add_argument("-u", "--uninstall", action="store_true")
+    parser.add_argument("--update", action="store_true")
+    parser.add_argument("-a", "--about", action="store_true")
+    parser.add_argument("-h", "--help", action="store_true")
+    parser.add_argument("--changelog", action="store_true")
 
     args = parser.parse_args()
 
     if args.help:
-        show_help(parser)
+        show_help()
         return
     if args.about:
         show_features()
@@ -421,7 +432,7 @@ def main():
 
     # Add additional handling for add/search/delete/generate logic as you need
 
-    show_help(parser)
+    show_help()
 
 if __name__ == "__main__":
     main()
