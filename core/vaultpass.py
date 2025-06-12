@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import argparse
 import os
 import sys
@@ -14,37 +13,38 @@ except ImportError:
     print("[X] Missing 'requests' library. Please install it with 'pip install requests'.")
     sys.exit(1)
 
-# === BULLETPROOF VERSION HANDLING ===
-DEFAULT_VERSION = "v1.7"
-INSTALL_DIR = os.path.join(os.path.expanduser("~"), ".vaultpass")
-VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
+def parse_ver(verstr):
+    # Accepts "1.9.0" or "v1.9.0" etc.
+    return tuple(map(int, verstr.strip().lstrip("vV").split(".")))
 
-def get_version():
-    try:
+def get_current_version():
+    VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
+    if os.path.exists(VERSION_FILE):
         with open(VERSION_FILE) as f:
             return f.read().strip()
-    except Exception:
-        return DEFAULT_VERSION
+    return "0.0.0"
 
-VERSION = get_version()
-
+HOME = os.path.expanduser("~")
+INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
 PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
 HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
 CHANGELOG_FILE = os.path.join(INSTALL_DIR, "changelog.txt")
+VERSION_FILE = os.path.join(INSTALL_DIR, "version.txt")
 BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 VAULT_PY = os.path.join(CORE_DIR, "vault.py")
 PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
-BIN_PATH = os.path.join(os.path.expanduser("~"), ".local", "bin", "vaultpass")
+BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+CURRENT_VERSION = get_current_version()
 
-def make_centered_banner(version=VERSION):
+def make_centered_banner(version):
     width = 37
     line1 = "🔑  VAULTPASS  🔒"
-    line2 = f"Secure Password Manager {version}"
+    line2 = f"Secure Password Manager v{version}"
     def pad(s):
         total = width - 2 - len(s)
         left = total // 2
@@ -54,9 +54,9 @@ def make_centered_banner(version=VERSION):
     mid1 = "║" + pad(line1) + "║"
     mid2 = "║" + pad(line2) + "║"
     bot = "╚" + "═" * (width - 2) + "╝"
-    return "\n".join([top, mid1, mid2, bot])
+    return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
 
-banner = make_centered_banner()
+banner = make_centered_banner(CURRENT_VERSION)
 
 def log_action(msg):
     with open(LOG_FILE, "a") as f:
@@ -78,12 +78,13 @@ def require_passphrase_setup():
             print("💡 Hint:", f.read().strip())
 
 def get_latest_changelog(changelog_file, version):
+    # Only fetches section matching 'Version X.Y.Z'
     try:
         with open(changelog_file, "r") as f:
             lines = f.readlines()
     except Exception:
         return []
-    target = f"Version {version.lstrip('v')}"
+    target = f"Version {version.lstrip('vV')}"
     start, out = False, []
     for line in lines:
         if line.strip().startswith("Version "):
@@ -95,9 +96,9 @@ def get_latest_changelog(changelog_file, version):
                 out.append(line.strip(" \n"))
     return out
 
-def print_changelog_box(version, lines, width=41):
+def print_changelog_box(version, lines, width=55):
     print("   ┌" + "─" * width + "┐")
-    title = f"Vaultpass {version}:"
+    title = f"Vaultpass v{version}:"
     print(f"   │ {title.ljust(width)}│")
     for line in lines:
         msg = line.lstrip("- ").capitalize()
@@ -108,17 +109,18 @@ def print_changelog_box(version, lines, width=41):
                 print(f"   │   {cont.ljust(width-2)}│")
     print("   └" + "─" * width + "┘")
 
-def show_changelog(version=VERSION):
-    print("\n" + banner + "\n")
+def show_changelog(version=None):
+    version = version or CURRENT_VERSION
+    print(banner)
     lines = get_latest_changelog(CHANGELOG_FILE, version)
     if not lines:
-        print("[!] No changelog found.")
+        print("[!] No changelog found for this version.")
         return
     print_changelog_box(version, lines)
-    print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
+    print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
 
 def show_features():
-    print("\n" + banner + "\n")
+    print(banner)
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -127,10 +129,11 @@ Vaultpass Functions:
 - View, search, delete, or edit saved passwords
 - Backup and restore encrypted vaults
 - more features coming soon
+
 """)
 
 def show_log():
-    print("\n" + banner + "\n")
+    print(banner)
     if not os.path.exists(LOG_FILE):
         print("[!] No log file found.")
         return
@@ -221,11 +224,11 @@ def change_passphrase():
         print("[X] Invalid passphrase. Try again.")
 
 def uninstall():
-    print("\n" + banner + "\n")
+    print(banner)
     confirm = input("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
-        bin_file = os.path.join(os.path.expanduser("~"), ".local", "bin", "vaultpass")
+        bin_file = os.path.join(HOME, ".local", "bin", "vaultpass")
         if os.path.exists(bin_file):
             os.remove(bin_file)
         print("[✓] Vaultpass is uninstalled.")
@@ -251,11 +254,7 @@ def check_for_updates(force=False):
     print("[*] Checking for Vaultpass updates...")
 
     # Read local version
-    try:
-        with open(VERSION_FILE) as f:
-            local_version = f.read().strip()
-    except FileNotFoundError:
-        local_version = DEFAULT_VERSION
+    local_version = CURRENT_VERSION
 
     # Get remote version
     try:
@@ -268,12 +267,12 @@ def check_for_updates(force=False):
         return
 
     # Major update (version change)
-    if local_version != remote_version:
-        print(f"[!] Latest: {remote_version}")
+    if parse_ver(local_version) < parse_ver(remote_version):
+        print(f"[!] Latest: v{remote_version}")
         print("[*] Changelog for latest version:\n")
         lines = get_latest_changelog(CHANGELOG_FILE, remote_version)
         print_changelog_box(remote_version, lines)
-        print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
+        print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
         update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
         if update in ("y", ""):
             print("[*] Updating Vaultpass…")
@@ -286,10 +285,9 @@ def check_for_updates(force=False):
             if rc.returncode == 0:
                 with open(VERSION_FILE, "w") as f:
                     f.write(remote_version)
-                # Overwrite launcher!
                 shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
                 os.chmod(BIN_PATH, 0o755)
-                print(f"[✓] Vaultpass updated to {remote_version}.")
+                print(f"[✓] Vaultpass updated to v{remote_version}.")
             else:
                 print("[X] Failed to update Vaultpass.")
         open(LAST_UPDATE_FILE, "a").close()
@@ -338,7 +336,7 @@ def check_for_updates(force=False):
                 if rc.returncode == 0:
                     shutil.copy2(os.path.join(CORE_DIR, "vaultpass.py"), BIN_PATH)
                     os.chmod(BIN_PATH, 0o755)
-                    print("[✓] Vaultpass updated with small changes.")
+                    print("[✓] Vaultpass minor update applied.")
                 else:
                     print("[X] Failed to update Vaultpass.")
         else:
@@ -346,7 +344,7 @@ def check_for_updates(force=False):
     open(LAST_UPDATE_FILE, "a").close()
 
 def show_help():
-    print("\n" + banner + "\n")
+    print(banner)
     print("""Usage: vaultpass [OPTIONS]
 Options:
   -l, --long [ID ...]        Generate long password(s)
@@ -365,10 +363,10 @@ Options:
   -a, --about                Show all features
   -h, --help                 Show this help
   --changelog                Show latest changelog
+
 """)
 
 def main():
-    # 3-day auto update check, unless --update
     if "--update" not in sys.argv:
         check_for_updates()
 
