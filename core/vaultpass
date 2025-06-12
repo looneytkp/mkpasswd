@@ -106,7 +106,7 @@ Options:
   -b, --backup               Backup passwords
   -r, --restore              Restore from backup
   --log                      Show action log
-  -u, --uninstall            Uninstall Vaultpass (nukes everything!)
+  -u, --uninstall            Uninstall Vaultpass
   --update                   Check for updates now
   -a, --about                Show all features
   -h, --help                 Show this help
