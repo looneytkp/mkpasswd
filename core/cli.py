@@ -1,7 +1,8 @@
 # core/cli.py
-
+import os
 import textwrap
 
+# Banner generator
 def make_centered_banner(version):
     width = 37
     line1 = "🔑  VAULTPASS  🔒"
@@ -17,8 +18,13 @@ def make_centered_banner(version):
     bot = "╚" + "═" * (width - 2) + "╝"
     return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
 
-def show_help(banner):
-    print(banner)
+# Show banner
+def show_banner(version):
+    print(make_centered_banner(version))
+
+# Show help text
+def show_help(version):
+    show_banner(version)
     print("""Usage: vaultpass [OPTIONS]
 Options:
   -l, --long [ID ...]        Generate long password(s)
@@ -40,8 +46,9 @@ Options:
 
 """)
 
-def show_features(banner):
-    print(banner)
+# Show about/features
+def show_features(version):
+    show_banner(version)
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -49,10 +56,11 @@ Vaultpass Functions:
 - Add optional 'info' field (e.g. what the password is for)
 - View, search, delete, or edit saved passwords
 - Backup and restore encrypted vaults
-- more features coming soon
+- More features coming soon
 
 """)
 
+# Changelog box printer
 def print_changelog_box(version, lines, width=55):
     print("   ┌" + "─" * width + "┐")
     title = f"Vaultpass v{version}:"
@@ -69,8 +77,9 @@ def print_changelog_box(version, lines, width=55):
                 print(f"   │   {cont.ljust(width-2)}│")
     print("   └" + "─" * width + "┘")
 
-def show_changelog(banner, version, lines):
-    print(banner)
+# Show changelog (needs lines passed in)
+def show_changelog(version, lines):
+    show_banner(version)
     if not lines:
         print("[!] No changelog found for this version.")
         return
