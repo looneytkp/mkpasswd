@@ -42,10 +42,19 @@ REQUIRED_MODULES = [
     "config.py",
     "uninstall.py"
 ]
+REQUIRED_SYSTEM_FILES = [
+    "changelog.txt",
+    "version.txt"
+]
 
-missing = [f for f in REQUIRED_MODULES if not os.path.isfile(os.path.join(CORE_DIR, f))]
-if missing:
-    print(f"[X] Missing required core files: {', '.join(missing)}")
+missing_core = [f for f in REQUIRED_MODULES if not os.path.isfile(os.path.join(CORE_DIR, f))]
+missing_system = [f for f in REQUIRED_SYSTEM_FILES if not os.path.isfile(os.path.join(SYSTEM_DIR, f))]
+
+if missing_core or missing_system:
+    if missing_core:
+        print(f"[X] Missing required core files: {', '.join(missing_core)}")
+    if missing_system:
+        print(f"[X] Missing required system files: {', '.join(missing_system)}")
     sys.exit(1)
 
 # ----------- Import Modular Code -----------
