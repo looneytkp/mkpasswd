@@ -2,7 +2,7 @@
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.."; pwd)"
 
-echo "[?] Uninstall Vaultpass and delete ALL its data, binaries, and project files? (Y/n): "
+echo "[?] Uninstall Vaultpass? (Y/n): "
 read answer
 
 if [[ "$answer" =~ ^[Yy]$ || -z "$answer" ]]; then
@@ -12,7 +12,7 @@ if [[ "$answer" =~ ^[Yy]$ || -z "$answer" ]]; then
         sed -i '/export PATH="\$HOME\/.local\/bin:\$PATH"/d' "$HOME/.bashrc"
     fi
     rm -rf "$PROJECT_DIR"
-    echo "[✓] Vaultpass and all related files have been completely removed."
+    echo "[✓] Vaultpass is uninstalled."
 else
     echo "[!] Uninstall cancelled."
 fi
