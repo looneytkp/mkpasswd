@@ -1,9 +1,9 @@
 # core/cli.py
-import os
 import textwrap
 
-# Banner generator
+# -------- Banner generator --------
 def make_centered_banner(version):
+    """Return ASCII banner string for Vaultpass (centered)."""
     width = 37
     line1 = "🔑  VAULTPASS  🔒"
     line2 = f"Secure Password Manager v{version}"
@@ -18,11 +18,11 @@ def make_centered_banner(version):
     bot = "╚" + "═" * (width - 2) + "╝"
     return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
 
-# Show banner
 def show_banner(version):
+    """Print the Vaultpass banner."""
     print(make_centered_banner(version))
 
-# Show help text
+# -------- Help/usage --------
 def show_help(version):
     show_banner(version)
     print("""Usage: vaultpass [OPTIONS]
@@ -46,7 +46,7 @@ Options:
 
 """)
 
-# Show about/features
+# -------- About/features --------
 def show_features(version):
     show_banner(version)
     print("""
@@ -60,7 +60,7 @@ Vaultpass Functions:
 
 """)
 
-# Changelog box printer
+# -------- Changelog box printer --------
 def print_changelog_box(version, lines, width=55):
     print("   ┌" + "─" * width + "┐")
     title = f"Vaultpass v{version}:"
@@ -77,11 +77,17 @@ def print_changelog_box(version, lines, width=55):
                 print(f"   │   {cont.ljust(width-2)}│")
     print("   └" + "─" * width + "┘")
 
-# Show changelog (needs lines passed in)
 def show_changelog(version, lines):
+    """Show banner, changelog box, and link."""
     show_banner(version)
     if not lines:
         print("[!] No changelog found for this version.")
         return
     print_changelog_box(version, lines)
     print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
+
+# ------- CLI dispatcher stub (add your logic here!) -------
+def run_cli():
+    # Placeholder for CLI logic (parsing, action dispatch)
+    # You’ll expand this as you modularize.
+    pass
