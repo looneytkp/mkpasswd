@@ -38,6 +38,12 @@ require_passphrase_setup() {
     fi
 }
 
+show_latest_changelog() {
+    ver="${1#v}"  # Remove any 'v' prefix
+    # Show only the block for the requested version (up to next Version or EOF)
+    awk "/^Version[[:space:]]*$ver/,/^Version[[:space:]]*[0-9]+\.[0-9]+/" "$CHANGELOG_FILE" | sed '$d'
+}
+
 check_for_updates() {
     LAST_UPDATE_FILE="$SYSTEM_DIR/.last_update_check"
     NEED_UPDATE=0
@@ -65,7 +71,7 @@ check_for_updates() {
             echo "[!] Currently installed: $local_version"
             echo "[!] Latest: $remote_version"
             echo "[*] Changelog for latest version:"
-            cat "$CHANGELOG_FILE" | head -20
+            show_latest_changelog "$remote_version"
             read -p "Do you want to update now? (Y/n): " u
             if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then
                 (cd "$INSTALL_DIR" && git pull origin main)
@@ -115,8 +121,11 @@ EOF
 }
 
 show_changelog() {
+    # Show just the latest block, not the whole file
+    local ver
+    ver=$(cat "$VERSION_FILE")
     echo "Latest Changelog:"
-    head -20 "$CHANGELOG_FILE"
+    show_latest_changelog "$ver"
     echo "Full changelog: https://github.com/looneytkp/vaultpass"
 }
 
