@@ -1,7 +1,6 @@
 # core/changelog.py
 
 import os
-
 from core.cli import print_changelog_box, show_banner
 
 def get_latest_changelog(changelog_file, version):
