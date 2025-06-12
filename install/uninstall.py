@@ -3,6 +3,7 @@
 import os
 import shutil
 import sys
+import platform
 
 def clean_path_from_shell_rc(bin_dir):
     home = os.path.expanduser("~")
@@ -35,30 +36,42 @@ def main():
     bin_file = os.path.join(bin_dir, "vaultpass")
     bin_file_win = os.path.join(bin_dir, "vaultpass.py")
 
-    print("[?] Uninstall Vaultpass? (Y/n): ", end="")
+    print("\n[?] Uninstall Vaultpass? (Y/n): ", end="")
     answer = input().strip().lower()
 
     if answer not in ["y", ""]:
         print("[!] Uninstall cancelled.")
         return
 
+    removed_any = False
+
     if os.path.exists(install_dir):
         shutil.rmtree(install_dir, ignore_errors=True)
         print(f"[✓] Removed {install_dir}")
+        removed_any = True
     else:
         print(f"[✓] No {install_dir} directory found.")
 
     if os.path.exists(bin_file):
         os.remove(bin_file)
         print(f"[✓] Removed binary: {bin_file}")
+        removed_any = True
 
     if os.path.exists(bin_file_win):
         os.remove(bin_file_win)
         print(f"[✓] Removed binary: {bin_file_win}")
+        removed_any = True
 
-    clean_path_from_shell_rc(bin_dir)
+    # PATH cleanup
+    if platform.system() == "Windows":
+        print("[!] Please remove .vaultpass from your PATH manually if needed (Windows).")
+    else:
+        clean_path_from_shell_rc(bin_dir)
 
-    print("[✓] Vaultpass is uninstalled.")
+    if removed_any:
+        print("[✓] Vaultpass is uninstalled.\n")
+    else:
+        print("[✓] Nothing to remove. Vaultpass was already uninstalled.\n")
 
 if __name__ == "__main__":
     main()
