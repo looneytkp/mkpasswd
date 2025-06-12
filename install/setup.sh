@@ -8,6 +8,7 @@ BACKUP_DIR="$INSTALL_DIR/backup"
 BIN_DIR="$HOME/.local/bin"
 LAUNCHER="vaultpass"
 LOCAL_BIN="$BIN_DIR/$LAUNCHER"
+INSTALL_SCRIPTS_DIR="$INSTALL_DIR/install"
 
 # Install or update repo
 if [ -d "$INSTALL_DIR/.git" ]; then
@@ -19,12 +20,19 @@ else
 fi
 
 # Create necessary folders (after cloning to avoid git clone errors)
-mkdir -p "$CORE_DIR" "$SYSTEM_DIR" "$BACKUP_DIR" "$BIN_DIR" > /dev/null 2>&1
+mkdir -p "$CORE_DIR" "$SYSTEM_DIR" "$BACKUP_DIR" "$BIN_DIR" "$INSTALL_SCRIPTS_DIR" > /dev/null 2>&1
 
 # Ensure core scripts are in place
 if [ ! -f "$CORE_DIR/vault.py" ] || [ ! -f "$CORE_DIR/password_gen.py" ] || [ ! -f "$CORE_DIR/vaultpass" ]; then
   echo "[X] Missing core scripts. Please check the repository."
   exit 1
+fi
+
+# Ensure uninstall.sh is always present in ~/.vaultpass/install/
+if [ -f "$INSTALL_DIR/install/uninstall.sh" ]; then
+    cp "$INSTALL_DIR/install/uninstall.sh" "$INSTALL_SCRIPTS_DIR/uninstall.sh" > /dev/null 2>&1
+elif [ -f "install/uninstall.sh" ]; then
+    cp "install/uninstall.sh" "$INSTALL_SCRIPTS_DIR/uninstall.sh" > /dev/null 2>&1
 fi
 
 # Copy launcher to bin and make executable
