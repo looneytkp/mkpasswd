@@ -394,3 +394,66 @@ def main():
     parser = argparse.ArgumentParser(
         description=f"Vaultpass - Secure Password Manager {VERSION}",
         formatter_class=argparse.RawText
+        formatter_class=argparse.RawTextHelpFormatter,
+        add_help=False
+    )
+    parser.add_argument("-l", "--long", nargs="+", help="Generate long password(s)")
+    parser.add_argument("-s", "--short", nargs="+", help="Generate short password(s)")
+    parser.add_argument("-c", "--custom", nargs="+", help="Save custom password(s)")
+    parser.add_argument("-L", "--list", action="store_true", help="List all saved passwords")
+    parser.add_argument("-S", "--search", nargs="+", help="Search for passwords by ID")
+    parser.add_argument("-d", "--delete", nargs="+", help="Delete password(s) by ID")
+    parser.add_argument("-e", "--edit", help="Edit username/email")
+    parser.add_argument("--change-passphrase", action="store_true", help="Change master passphrase")
+    parser.add_argument("-b", "--backup", action="store_true", help="Backup passwords")
+    parser.add_argument("-r", "--restore", action="store_true", help="Restore from backup")
+    parser.add_argument("--log", action="store_true", help="Show action log")
+    parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstall Vaultpass")
+    parser.add_argument("--update", action="store_true", help="Check for updates now")
+    parser.add_argument("-a", "--about", action="store_true", help="Show all features")
+    parser.add_argument("-h", "--help", action="store_true", help="Show help")
+    parser.add_argument("--changelog", action="store_true", help="Show latest changelog")
+
+    args = parser.parse_args()
+
+    # Always check for updates (unless --help or --about or --uninstall)
+    if not (args.help or args.about or args.uninstall):
+        check_for_updates(force=False)
+
+    if args.help:
+        show_help()
+    elif args.about:
+        show_features()
+    elif args.changelog:
+        show_changelog()
+    elif args.log:
+        show_log()
+    elif args.update:
+        check_for_updates(force=True)
+    elif args.backup:
+        backup_passwords()
+    elif args.restore:
+        restore_passwords()
+    elif args.edit:
+        edit_entry(args.edit)
+    elif args.change_passphrase:
+        change_passphrase()
+    elif args.list:
+        list_passwords()
+    elif args.search:
+        search_passwords(args.search)
+    elif args.delete:
+        delete_passwords(args.delete)
+    elif args.long:
+        generate_passwords(args.long, "long")
+    elif args.short:
+        generate_passwords(args.short, "short")
+    elif args.custom:
+        save_custom_passwords(args.custom)
+    elif args.uninstall:
+        uninstall()
+    else:
+        show_help()
+
+if __name__ == "__main__":
+    main()
