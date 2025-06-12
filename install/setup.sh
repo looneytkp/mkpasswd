@@ -9,27 +9,27 @@ BIN_DIR="$HOME/.local/bin"
 LAUNCHER="vaultpass"
 LOCAL_BIN="$BIN_DIR/$LAUNCHER"
 
-# Create necessary folders
-mkdir -p "$CORE_DIR" "$SYSTEM_DIR" "$BACKUP_DIR" "$BIN_DIR"
-
-# Clone or update repo
+# Install or update repo
 if [ -d "$INSTALL_DIR/.git" ]; then
-  echo "[*] Updating vaultpass..."
-  git -C "$INSTALL_DIR" pull origin main
+  echo "[*] Updating Vaultpass..."
+  git -C "$INSTALL_DIR" pull origin main > /dev/null 2>&1
 else
-  echo "[*] Installing vaultpass..."
-  git clone "$REPO_URL" "$INSTALL_DIR"
+  echo "[*] Installing Vaultpass..."
+  git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1
 fi
 
+# Create necessary folders (after cloning to avoid git clone errors)
+mkdir -p "$CORE_DIR" "$SYSTEM_DIR" "$BACKUP_DIR" "$BIN_DIR" > /dev/null 2>&1
+
 # Ensure core scripts are in place
-if [ ! -f "$CORE_DIR/vault.py" ] || [ ! -f "$CORE_DIR/password_gen.py" ]; then
+if [ ! -f "$CORE_DIR/vault.py" ] || [ ! -f "$CORE_DIR/password_gen.py" ] || [ ! -f "$CORE_DIR/vaultpass" ]; then
   echo "[X] Missing core scripts. Please check the repository."
   exit 1
 fi
 
 # Copy launcher to bin and make executable
-cp "$INSTALL_DIR/vaultpass" "$LOCAL_BIN"
-chmod +x "$LOCAL_BIN"
+cp "$CORE_DIR/vaultpass" "$LOCAL_BIN" > /dev/null 2>&1
+chmod +x "$LOCAL_BIN" > /dev/null 2>&1
 
 # Ensure bin path is in PATH
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
@@ -38,7 +38,7 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
 fi
 
 # Touch metadata files
-touch "$SYSTEM_DIR/passphrase_hint.txt" "$SYSTEM_DIR/vaultpass.log" "$SYSTEM_DIR/.last_update_check"
+touch "$SYSTEM_DIR/passphrase_hint.txt" "$SYSTEM_DIR/vaultpass.log" "$SYSTEM_DIR/.last_update_check" > /dev/null 2>&1
 
-echo "[✔] vaultpass installed successfully."
+echo "[✓] Vaultpass installed successfully."
 echo "[!] Run 'vaultpass -h' to begin."
