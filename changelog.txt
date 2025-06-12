@@ -1,79 +1,73 @@
-Version 1.7
-- Complete port from Bash to Python for main vaultpass script
-- Beautiful centered startup banner (with emoji key art)
-- CLI output and help styled for clean, readable, bash-like look
-- 3-day auto-update logic with major & minor update checks (using git & remote version.txt)
-- Shorter, clearer install outputs (e.g. [✓] PATH already set.)
-- Required Python packages are auto-installed with friendly messages
-- Windows compatibility and shell detection improvements
-- PATH detection/setting logic now platform-aware (bash, zsh, Windows, etc.)
-- Improved uninstaller, with friendly prompts and full cleanup
-- Only prints package installation when needed
-- Install/Update outputs distinguish between fresh and update install
-- Help/usage output matches custom style (no argparse “usage” noise)
-- All CLI flags preserved and migrated
-- All outputs (help/about/changelog/uninstall) start with banner
-- Setup and uninstall now handled by Python scripts
-- Code fully modular and ready for future feature expansion
+Version 1.7.0
+- Complete port from Bash to Python for the main vaultpass script
+- Beautiful centered startup banner with emoji key art
+- Major CLI and output restyle: cleaner, more readable, bash-like look
+- Auto-update logic: 3-day major & minor update checks (version and commit)
+- Help/about/uninstall/changelog all start with styled banner
+- Windows compatibility, improved shell detection (bash/zsh/Windows)
+- Install/Update logic distinguishes fresh and update installs
+- Required Python packages auto-installed with friendly messages
+- All CLI flags/aliases preserved and migrated
+- Modular structure for future AI and feature expansion
 
-Version 1.6
-- Improved update check logic (checks both version and commit hash for minor updates)
-- Added centered block banner with emoji for branding
-- Improved help/usage formatting and cleaner CLI outputs
-- Shortened PATH messages for clarity
-- Install script only prints required package installation if actually needed
-- More robust uninstall logic
+Version 1.6.0
+- Improved update check logic (detects both version and commit hash for minor updates)
+- Centered block banner with emoji branding
+- CLI help and outputs restyled for clarity and consistency
+- Shorter PATH messages
+- Installer only prints when required packages are installed
+- More robust uninstall (cleans up all files and config)
 
-Version 1.5
-- Renamed from mkpasswd to vaultpass (conflict-free command)
-- Restructured directory to: ~/.vaultpass/{core,system,backup}
-- Vault logs now saved in vaultpass.log
-- Weekly auto-update check via Git
-- Passphrase now only required for secure actions
-- Added --change-passphrase with validation
-- Warns if using blank passphrase
-- Backs up and restores passphrase_hint.txt
-- New password structure includes optional 'info' field
-- Improved argument handling and CLI help
-- Installers now check for package managers by distro
-- Unified setup/uninstall
-- Fixes for Termux compatibility
+Version 1.5.0
+- Project renamed from mkpasswd to vaultpass (conflict-free command)
+- Directory structure: ~/.vaultpass/{core,system,backup}
+- Vault logs now saved to vaultpass.log
+- Auto-update checks run weekly via Git
+- Passphrase required only for secure actions
+- Added --change-passphrase with current passphrase validation
+- Blank passphrase warning
+- Backups now include passphrase_hint.txt
+- New entry format includes optional 'info' field
+- Improved argument parsing and CLI help/usage
+- Setup/uninstall scripts detect package managers by distro
+- Unified setup/uninstall logic (better platform support)
+- Improved Termux compatibility
 
-Version 1.4
+Version 1.4.0
 - Added backup system to ~/.vaultpass/backup
-- Optional GPG encryption of backups
-- Integrated logging to vaultpass.log
-- Username/email can now be updated independently
-- Added support for multiple passwords under the same ID
-- Added uninstall confirmation and backup prompt
+- Optional GPG encryption for backups
+- Logging integrated to vaultpass.log
+- Username/email can be updated independently of password
+- Support for multiple passwords under the same ID (append count)
+- Uninstall confirmation with backup prompt
 - Switched to Git-based remote updates
-- Added check for required files and auto-reinstall prompt
-- Added version check using Git commits
+- Auto-reinstall if required files are missing
+- Version check using Git commits
 
-Version 1.3
-- Added username/email field for each entry
-- Allowed editing saved username/email with -e
-- Prompted user when duplicate ID is found (add, replace, cancel)
-- Backup now includes passphrase hint
-- Added passphrase prompt only for secure operations
+Version 1.3.0
+- Added username/email field per password entry
+- Editing saved username/email via -e/--edit
+- Duplicate ID prompt (add, replace, cancel)
+- Backup includes passphrase hint
+- Passphrase prompt only for secure actions
 - Updated backup/restore logic
 
-Version 1.2
-- Initial integration of Python scripts: vault.py, password_gen.py
-- Added support for long and short password generation
-- Encrypted password vault with GPG
-- Added support for backup and restore options
-- Added uninstall flag and cleanup
-- Displayed passphrase hint on startup
+Version 1.2.0
+- Initial Python integration: vault.py, password_gen.py
+- Support for long and short password generation
+- GPG-encrypted password vault
+- Added backup and restore commands
+- Uninstall flag and complete cleanup
+- Passphrase hint displayed on startup
 
-Version 1.1
-- Introduced logging for actions
-- Improved error handling and edge case detection
-- Setup script enhancements and prompts
-- Basic ID search support added
+Version 1.1.0
+- Introduced action logging
+- Improved error handling for edge cases
+- Setup script enhancements and user prompts
+- Added basic ID search
 
-Version 1.0
+Version 1.0.0
 - Initial release as mkpasswd
-- Basic interactive password generation
+- Interactive password generation
 - Encrypted password storage
-- Simple ID management
+- Basic ID management
