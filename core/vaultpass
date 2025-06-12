@@ -106,7 +106,7 @@ Options:
   -b, --backup               Backup passwords
   -r, --restore              Restore from backup
   --log                      Show action log
-  -u, --uninstall            Uninstall Vaultpass
+  -u, --uninstall            Uninstall Vaultpass (nukes everything!)
   --update                   Check for updates now
   -a, --about                Show all features
   -h, --help                 Show this help
@@ -274,7 +274,12 @@ case "$1" in
             log_action "Saved custom password for $ID"
         done ;;
     -u|--uninstall)
-        bash "$CORE_DIR/../install/uninstall.sh"
+        UNINSTALL_SCRIPT="$INSTALL_DIR/install/uninstall.sh"
+        if [ -f "$UNINSTALL_SCRIPT" ]; then
+            bash "$UNINSTALL_SCRIPT"
+        else
+            echo "[X] Uninstaller not found. Please re-clone the repo or delete Vaultpass manually."
+        fi
         exit 0
         ;;
     *) show_help ;;
