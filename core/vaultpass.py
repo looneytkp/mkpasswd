@@ -6,6 +6,7 @@ import subprocess
 import sys
 import shutil
 import time
+import textwrap
 
 try:
     import requests
@@ -13,7 +14,7 @@ except ImportError:
     print("[X] Missing 'requests' library. Please install it with 'pip install requests'.")
     sys.exit(1)
 
-VERSION = "v1.6"
+VERSION = "v1.7"
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
@@ -65,14 +66,45 @@ def require_passphrase_setup():
         with open(HINT_FILE) as f:
             print("💡 Hint:", f.read().strip())
 
-def show_changelog():
+def get_latest_changelog(changelog_file, version):
+    try:
+        with open(changelog_file, "r") as f:
+            lines = f.readlines()
+    except Exception:
+        return []
+    target = f"Version {version.lstrip('v')}"
+    start, out = False, []
+    for line in lines:
+        if line.strip().startswith("Version "):
+            if start: break  # end after our version's block
+            start = line.strip().startswith(target)
+            continue
+        if start:
+            if line.strip():  # skip empty lines
+                out.append(line.strip(" \n"))
+    return out
+
+def print_changelog_box(version, lines, width=41):
+    print("   ┌" + "─" * width + "┐")
+    title = f"Vaultpass {version}:"
+    print(f"   │ {title.ljust(width)}│")
+    for line in lines:
+        msg = line.lstrip("- ").capitalize()
+        wrapped = textwrap.wrap(msg, width=width-2)
+        if wrapped:
+            print(f"   │ - {wrapped[0].ljust(width-2)}│")
+            for cont in wrapped[1:]:
+                print(f"   │   {cont.ljust(width-2)}│")
+    print("   └" + "─" * width + "┘")
+
+def show_changelog(version=VERSION):
     print(banner)
-    if not os.path.exists(CHANGELOG_FILE):
+    lines = get_latest_changelog(CHANGELOG_FILE, version)
+    if not lines:
         print("[!] No changelog found.")
         return
-    with open(CHANGELOG_FILE) as f:
-        for line in f:
-            print(line.rstrip())
+    print_changelog_box(version, lines)
+    print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
 
 def show_features():
     print(banner)
@@ -223,19 +255,11 @@ def check_for_updates(force=False):
         return
 
     if local_version != remote_version:
-        print("[!] New version available!")
-        print(f"[!] Currently installed: {local_version}")
         print(f"[!] Latest: {remote_version}")
-        print("[*] Changelog for latest version:")
-        # Show top of changelog
-        if os.path.exists(CHANGELOG_FILE):
-            with open(CHANGELOG_FILE) as f:
-                shown = 0
-                for line in f:
-                    print(line.rstrip())
-                    shown += 1
-                    if shown >= 15: break
-        print("[*] Full changelog: https://github.com/looneytkp/vaultpass")
+        print("[*] Changelog for latest version:\n")
+        lines = get_latest_changelog(CHANGELOG_FILE, remote_version)
+        print_changelog_box(remote_version, lines)
+        print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass")
         update = input("[?] Do you want to update now? (Y/n): ").strip().lower()
         if update in ("y", ""):
             print("[*] Updating Vaultpass…")
@@ -285,7 +309,7 @@ def check_for_updates(force=False):
             print("[✓] Vaultpass is up to date.")
     open(LAST_UPDATE_FILE, "a").close()
 
-def show_help(parser):
+def show_help(parser=None):
     print(banner)
     print("Usage: vaultpass [OPTIONS]")
     print("Options:")
