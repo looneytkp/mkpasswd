@@ -1,25 +1,36 @@
 #!/usr/bin/env python3
-# core/vault.py
-"""
-Vault logic module for Vaultpass.
-Handles GPG encryption, decryption, verification, and passphrase change.
-"""
 
+import os
 import sys
 from getpass import getpass
+import gnupg
+import random
+import string
 
-try:
-    import gnupg
-except ImportError:
-    print("[X] Missing 'python-gnupg' library. Please install with 'pip install python-gnupg'.")
-    sys.exit(1)
+# ====================
+# Vaultpass Vault Logic
+# ====================
 
-gpg = gnupg.GPG()  # Initialize the GPG interface
+HOME = os.path.expanduser("~")
+SYSTEM_DIR = os.path.join(HOME, ".vaultpass", "system")
+PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
+HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 
+gpg = gnupg.GPG()
+
+# --------- Password Generation ----------
+def generate_password(length=16):
+    chars = string.ascii_letters + string.digits + '!@#$%^&*_+-='
+    while True:
+        password = ''.join(random.SystemRandom().choice(chars) for _ in range(length))
+        if (any(c.islower() for c in password) and
+            any(c.isupper() for c in password) and
+            any(c.isdigit() for c in password) and
+            any(c in '!@#$%^&*_+-=' for c in password)):
+            return password
+
+# --------- Encryption & Decryption ----------
 def encrypt(input_file, output_file):
-    """
-    Encrypts a file using a symmetric passphrase.
-    """
     passphrase = getpass("Enter your passphrase: ")
     with open(input_file, "r") as f:
         status = gpg.encrypt_file(
@@ -31,9 +42,6 @@ def encrypt(input_file, output_file):
         sys.exit(1)
 
 def decrypt(input_file, output_file):
-    """
-    Decrypts a file using a passphrase.
-    """
     passphrase = getpass("Enter your passphrase: ")
     with open(input_file, "rb") as f:
         status = gpg.decrypt_file(f, passphrase=passphrase, output=output_file)
@@ -42,23 +50,15 @@ def decrypt(input_file, output_file):
         sys.exit(1)
 
 def verify(input_file):
-    """
-    Verifies if the given passphrase can decrypt the file.
-    """
     passphrase = getpass("Enter your current passphrase: ")
     with open(input_file, "rb") as f:
         status = gpg.decrypt_file(f, passphrase=passphrase)
     if not status.ok:
         print("[X] Verification failed:", status.status)
         sys.exit(1)
-    print("[✓] Passphrase is correct.")
 
 def change_passphrase(input_file):
-    """
-    Changes the passphrase for the encrypted file.
-    """
     old_pass = getpass("Enter current passphrase: ")
-    # Decrypt the file with the old passphrase
     decrypted = gpg.decrypt_file(open(input_file, "rb"), passphrase=old_pass)
     if not decrypted.ok:
         print("[X] Decryption failed with current passphrase.")
@@ -68,40 +68,115 @@ def change_passphrase(input_file):
     if new_pass != confirm_pass:
         print("[X] Passphrases do not match.")
         sys.exit(1)
-    # Re-encrypt the data with the new passphrase
-    result = gpg.encrypt(
-        str(decrypted), recipients=None, symmetric=True,
-        passphrase=new_pass, output=input_file
-    )
+    result = gpg.encrypt(str(decrypted), recipients=None, symmetric=True,
+                         passphrase=new_pass, output=input_file)
     if not result.ok:
         print("[X] Re-encryption failed:", result.status)
         sys.exit(1)
-    print("[✓] Passphrase changed successfully.")
 
+# --------- Vault Actions ----------
+def list_passwords():
+    tmp_file = PASS_FILE + ".tmp"
+    decrypt(PASS_FILE, tmp_file)
+    with open(tmp_file) as f:
+        for line in f:
+            print(line.strip())
+    os.remove(tmp_file)
+
+def add_password(entry_id, username_email, info=""):
+    tmp_file = PASS_FILE + ".tmp"
+    decrypt(PASS_FILE, tmp_file)
+    with open(tmp_file, "a") as f:
+        password = generate_password(16)
+        f.write(f"{entry_id}|{username_email}|{password}|{info}\n")
+    encrypt(tmp_file, PASS_FILE)
+    os.remove(tmp_file)
+    print(f"[✓] Saved password for {entry_id}.")
+
+def search_password(entry_id):
+    tmp_file = PASS_FILE + ".tmp"
+    decrypt(PASS_FILE, tmp_file)
+    found = False
+    with open(tmp_file) as f:
+        for line in f:
+            if line.startswith(f"{entry_id}|"):
+                print(line.strip())
+                found = True
+    if not found:
+        print("[X] No entry found.")
+    os.remove(tmp_file)
+
+def delete_password(entry_id):
+    tmp_file = PASS_FILE + ".tmp"
+    decrypt(PASS_FILE, tmp_file)
+    lines = []
+    found = False
+    with open(tmp_file) as f:
+        for line in f:
+            if not line.startswith(f"{entry_id}|"):
+                lines.append(line)
+            else:
+                found = True
+    with open(tmp_file, "w") as f:
+        f.writelines(lines)
+    encrypt(tmp_file, PASS_FILE)
+    os.remove(tmp_file)
+    if found:
+        print(f"[✓] Deleted entry for {entry_id}.")
+    else:
+        print("[X] No entry found.")
+
+# --------- Command-line Usage ----------
 if __name__ == "__main__":
-    # Basic CLI for vault actions
-    if len(sys.argv) < 3:
-        print("Usage: vault.py [encrypt|decrypt|verify|change_passphrase] input [output]")
+    # Simple CLI for demo purposes
+    if len(sys.argv) < 2:
+        print("Usage: vault.py [list|add|search|delete|encrypt|decrypt|verify|change_passphrase] [args...]")
         sys.exit(1)
 
     command = sys.argv[1]
-    input_file = sys.argv[2]
-    output_file = sys.argv[3] if len(sys.argv) > 3 else None
 
-    if command == "encrypt":
-        if not output_file:
-            print("[X] Output file required for encryption.")
+    if command == "list":
+        list_passwords()
+    elif command == "add":
+        if len(sys.argv) < 4:
+            print("Usage: vault.py add <ID> <username/email> [info]")
             sys.exit(1)
-        encrypt(input_file, output_file)
+        entry_id = sys.argv[2]
+        username_email = sys.argv[3]
+        info = sys.argv[4] if len(sys.argv) > 4 else ""
+        add_password(entry_id, username_email, info)
+    elif command == "search":
+        if len(sys.argv) < 3:
+            print("Usage: vault.py search <ID>")
+            sys.exit(1)
+        entry_id = sys.argv[2]
+        search_password(entry_id)
+    elif command == "delete":
+        if len(sys.argv) < 3:
+            print("Usage: vault.py delete <ID>")
+            sys.exit(1)
+        entry_id = sys.argv[2]
+        delete_password(entry_id)
+    elif command == "encrypt":
+        if len(sys.argv) < 4:
+            print("Usage: vault.py encrypt <input> <output>")
+            sys.exit(1)
+        encrypt(sys.argv[2], sys.argv[3])
     elif command == "decrypt":
-        if not output_file:
-            print("[X] Output file required for decryption.")
+        if len(sys.argv) < 4:
+            print("Usage: vault.py decrypt <input> <output>")
             sys.exit(1)
-        decrypt(input_file, output_file)
+        decrypt(sys.argv[2], sys.argv[3])
     elif command == "verify":
-        verify(input_file)
+        if len(sys.argv) < 3:
+            print("Usage: vault.py verify <input>")
+            sys.exit(1)
+        verify(sys.argv[2])
     elif command == "change_passphrase":
-        change_passphrase(input_file)
+        if len(sys.argv) < 3:
+            print("Usage: vault.py change_passphrase <input>")
+            sys.exit(1)
+        change_passphrase(sys.argv[2])
     else:
         print(f"Unknown command: {command}")
         sys.exit(1)
