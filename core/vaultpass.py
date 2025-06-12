@@ -29,6 +29,23 @@ PASSGEN_PY = os.path.join(CORE_DIR, "password_gen.py")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 
+def make_centered_banner(version=VERSION):
+    width = 39
+    line1 = "🔑  VAULTPASS  🔒"
+    line2 = f"Secure Password Manager {version}"
+    def pad(s):
+        total = width - 2 - len(s)
+        left = total // 2
+        right = total - left
+        return " " * left + s + " " * right
+    top = "╔" + "═" * (width - 2) + "╗"
+    mid1 = "║" + pad(line1) + "║"
+    mid2 = "║" + pad(line2) + "║"
+    bot = "╚" + "═" * (width - 2) + "╝"
+    return "\n".join([top, mid1, mid2, bot])
+
+banner = make_centered_banner()
+
 def log_action(msg):
     with open(LOG_FILE, "a") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
@@ -49,6 +66,7 @@ def require_passphrase_setup():
             print("💡 Hint:", f.read().strip())
 
 def show_changelog():
+    print(banner)
     if not os.path.exists(CHANGELOG_FILE):
         print("[!] No changelog found.")
         return
@@ -57,6 +75,7 @@ def show_changelog():
             print(line.rstrip())
 
 def show_features():
+    print(banner)
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -68,6 +87,7 @@ Vaultpass Functions:
 """)
 
 def show_log():
+    print(banner)
     if not os.path.exists(LOG_FILE):
         print("[!] No log file found.")
         return
@@ -158,6 +178,7 @@ def change_passphrase():
         print("[X] Invalid passphrase. Try again.")
 
 def uninstall():
+    print(banner)
     confirm = input("[?] Uninstall Vaultpass? (Y/n): ").strip().lower()
     if confirm in ("y", ""):
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
@@ -169,7 +190,6 @@ def uninstall():
         print("[!] Uninstall cancelled.")
 
 def check_for_updates(force=False):
-    # 3-day auto-check logic
     now = int(time.time())
     need_update = False
     if force:
@@ -183,7 +203,7 @@ def check_for_updates(force=False):
         need_update = True
 
     if not need_update:
-        return  # Don't show unless forced or 3+ days
+        return
 
     print("[*] Checking for Vaultpass updates...")
 
@@ -263,8 +283,28 @@ def check_for_updates(force=False):
                     print("[X] Failed to update Vaultpass.")
         else:
             print("[✓] Vaultpass is up to date.")
-    # Update timestamp so we don't check again too soon
     open(LAST_UPDATE_FILE, "a").close()
+
+def show_help(parser):
+    print(banner)
+    print("Usage: vaultpass [OPTIONS]")
+    print("Options:")
+    print("  -l, --long [ID ...]        Generate long password(s)")
+    print("  -s, --short [ID ...]       Generate short password(s)")
+    print("  -c, --custom [ID ...]      Save custom password(s)")
+    print("  -L, --list                 List all saved passwords")
+    print("  -S, --search [ID ...]      Search for passwords by ID")
+    print("  -d, --delete [ID ...]      Delete password(s) by ID")
+    print("  -e, --edit [ID]            Edit username/email")
+    print("  --change-passphrase        Change master passphrase")
+    print("  -b, --backup               Backup passwords")
+    print("  -r, --restore              Restore from backup")
+    print("  --log                      Show action log")
+    print("  -u, --uninstall            Uninstall Vaultpass")
+    print("  --update                   Check for updates now")
+    print("  -a, --about                Show all features")
+    print("  -h, --help                 Show this help")
+    print("  --changelog                Show latest changelog")
 
 def main():
     # 3-day auto update check, unless --update
@@ -296,7 +336,7 @@ def main():
     args = parser.parse_args()
 
     if args.help:
-        parser.print_help()
+        show_help(parser)
         return
     if args.about:
         show_features()
@@ -340,7 +380,7 @@ def main():
 
     # Add additional handling for add/search/delete/generate logic as you need
 
-    parser.print_help()
+    show_help(parser)
 
 if __name__ == "__main__":
     main()
