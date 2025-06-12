@@ -53,10 +53,13 @@ show_changelog() {
 }
 
 check_for_updates() {
+    FORCE=${1:-0}
     LAST_UPDATE_FILE="$INSTALL_DIR/system/.last_update_check"
     NEED_UPDATE=0
 
-    if [ -f "$LAST_UPDATE_FILE" ]; then
+    if [ "$FORCE" -eq 1 ]; then
+        NEED_UPDATE=1
+    elif [ -f "$LAST_UPDATE_FILE" ]; then
         last=$(date -r "$LAST_UPDATE_FILE" +%s)
         now=$(date +%s)
         diff=$(( (now - last) / 86400 ))
@@ -69,6 +72,7 @@ check_for_updates() {
         echo "[*] Checking for Vaultpass updates..."
         local_version=$(cat "$VERSION_FILE")
         remote_version=$(curl -fsSL "$REMOTE_VERSION_URL" 2>/dev/null || echo "$local_version")
+
         if [ "$local_version" != "$remote_version" ]; then
             echo "[!] New version available!"
             echo "[!] Currently installed: $local_version"
@@ -84,9 +88,29 @@ check_for_updates() {
                 log_action "Vaultpass updated to $remote_version"
             fi
         else
-            echo "[✓] Vaultpass is up to date."
+            # Check for minor (silent) updates (same version, new commits)
+            local_commit=$(cd "$CORE_DIR/.." && git rev-parse HEAD 2>/dev/null)
+            git -C "$CORE_DIR/.." fetch origin main > /dev/null 2>&1
+            remote_commit=$(cd "$CORE_DIR/.." && git rev-parse origin/main 2>/dev/null)
+
+            if [ -n "$local_commit" ] && [ -n "$remote_commit" ] && [ "$local_commit" != "$remote_commit" ]; then
+                # Get the latest remote commit message
+                remote_message=$(cd "$CORE_DIR/.." && git log -1 --pretty=%B origin/main | head -1)
+                echo "[!] Minor updates available: $remote_message"
+                read -p "[?] Update? (Y/n): " u
+                if [[ "$u" =~ ^[Yy]$ || -z "$u" ]]; then
+                    echo "[*] Updating Vaultpass…"
+                    (cd "$CORE_DIR/.." && git pull origin main > /dev/null 2>&1)
+                    echo "[✓] Vaultpass updated to latest code (version unchanged)."
+                    log_action "Vaultpass minor update"
+                fi
+            else
+                echo "[✓] Vaultpass is up to date."
+            fi
         fi
         touch "$LAST_UPDATE_FILE"
+    else
+        echo "[✓] Vaultpass is up to date."
     fi
 }
 
@@ -106,7 +130,7 @@ Options:
   -b, --backup               Backup passwords
   -r, --restore              Restore from backup
   --log                      Show action log
-  -u, --uninstall            Uninstall Vaultpass (nukes everything!)
+  -u, --uninstall            Uninstall Vaultpass
   --update                   Check for updates now
   -a, --about                Show all features
   -h, --help                 Show this help
@@ -206,7 +230,7 @@ change_passphrase() {
 }
 
 update_now() {
-    check_for_updates
+    check_for_updates 1
     exit 0
 }
 
