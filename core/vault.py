@@ -1,5 +1,3 @@
-# core/vault.py
-
 import os
 import sys
 import time
@@ -30,18 +28,18 @@ def require_passphrase_setup(show_hint_only_on_prompt=False):
 
     if not os.path.isfile(HASH_FILE):
         show_banner()
-        print("[✓] First run: You must set a master passphrase.")
+        print("First run: You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
         print("  - If you forget it, your passwords cannot be recovered.")
         for attempt in range(3):
             passphrase = getpass.getpass("[*] Enter a passphrase [Leave blank for NO Encryption]: ")
+            if passphrase == "":
+                print("[!] Warning: Passwords will NOT be encrypted!")
+                if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
+                if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
+                break
             confirm = getpass.getpass("[*] Confirm passphrase: ")
             if passphrase == confirm:
-                if passphrase == "":
-                    print("[!] Warning: Passwords will NOT be encrypted!")
-                    if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
-                    if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
-                    break
                 # Save passphrase hash
                 with open(HASH_FILE, "w") as f:
                     f.write(hash_passphrase(passphrase))
