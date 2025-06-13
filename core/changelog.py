@@ -35,4 +35,4 @@ def show_changelog(changelog_file, version, truncate=20):
     if len(lines) > truncate:
         display_lines.append("[...truncated. See full changelog online.]")
     cli.print_changelog_box(version, display_lines)
-    print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
+    print("[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
