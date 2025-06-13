@@ -15,14 +15,41 @@ HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 HASH_FILE = os.path.join(SYSTEM_DIR, "passphrase_hash.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
 
-def load_config():
+DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
+
+def ensure_config_and_heal():
+    """Heal .config if missing or out of sync with passphrase_hash.txt."""
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "w") as f:
+            f.write(DEFAULT_CONFIG)
     config = {}
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE) as f:
-            for line in f:
-                if '=' in line:
-                    k, v = line.strip().split('=', 1)
-                    config[k] = v
+    with open(CONFIG_FILE, "r") as f:
+        for line in f:
+            if '=' in line:
+                k, v = line.strip().split('=', 1)
+                config[k] = v
+    # Healing: If hash exists but config disagrees, fix config
+    if os.path.exists(HASH_FILE):
+        changed = False
+        if config.get('encryption') != 'on':
+            config['encryption'] = 'on'
+            changed = True
+        if config.get('passphrase_set') != 'yes':
+            config['passphrase_set'] = 'yes'
+            changed = True
+        if changed:
+            with open(CONFIG_FILE, "w") as f:
+                for k, v in config.items():
+                    f.write(f"{k}={v}\n")
+
+def load_config():
+    ensure_config_and_heal()
+    config = {}
+    with open(CONFIG_FILE, "r") as f:
+        for line in f:
+            if '=' in line:
+                k, v = line.strip().split('=', 1)
+                config[k] = v
     return config
 
 def save_config(config):
