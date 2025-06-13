@@ -4,6 +4,7 @@ import time
 import shutil
 import getpass
 import hashlib
+from banner_utils import show_banner
 
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
@@ -41,9 +42,10 @@ def save_config(config):
 def hash_passphrase(passphrase):
     return hashlib.sha256(passphrase.encode()).hexdigest()
 
-def require_passphrase_setup():
-    from cli import show_banner  # local import to avoid circular
+def sanitize(s):
+    return s.replace("|", "_").replace("\n", " ").strip()
 
+def require_passphrase_setup():
     config = load_config()
     enc_state = config.get('encryption', 'off')
     passphrase_state = config.get('passphrase_set', 'no')
@@ -111,19 +113,22 @@ def _write_pass_lines(lines):
         f.writelines(lines)
 
 def handle_duplicate_id(save_id):
+    # Check if ID exists and prompt for action
     lines = _read_pass_lines()
     id_found = any(line.startswith(f"{save_id}:") for line in lines)
     if not id_found:
-        return None  # Means ID is not duplicated, so use as is
+        return None
     while True:
         resp = input(f"[!] ID '{save_id}' already exists. [O]verwrite, [A]ppend, [C]ancel? (o/a/c): ").strip().lower()
         if resp == "o":
+            # Overwrite: remove old entry
             _write_pass_lines([line for line in lines if not line.startswith(f"{save_id}:")])
             return save_id
         elif resp == "a":
+            # Append: find next available suffix
             count = 2
-            new_id = f"{save_id}_{count}"
             existing_ids = [line.split(":")[0] for line in lines]
+            new_id = f"{save_id}_{count}"
             while new_id in existing_ids:
                 count += 1
                 new_id = f"{save_id}_{count}"
@@ -134,7 +139,6 @@ def handle_duplicate_id(save_id):
             sys.exit(0)
         else:
             print("[!] Invalid option.")
-    return save_id
 
 def list_entries():
     require_passphrase_setup()
@@ -148,7 +152,13 @@ def list_entries():
 def add_entry(id, user="", pwd="", info=""):
     require_passphrase_setup()
     os.makedirs(SYSTEM_DIR, exist_ok=True)
-    line = f"{id}:|{user}|{pwd}|{info}\n"
+    id = sanitize(id)
+    user = sanitize(user)
+    info = sanitize(info)
+    if info:
+        line = f"{id}:|{user}|{pwd}|{info}\n"
+    else:
+        line = f"{id}:|{user}|{pwd}\n"
     with open(PASS_FILE, "a") as f:
         f.write(line)
     print(f"[✓] Saved password for {id}.")
