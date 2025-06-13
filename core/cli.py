@@ -50,11 +50,12 @@ def run_cli():
     elif args[0] in ("-l", "--long"):
         if len(args) > 1:
             for save_id in args[1:]:
-                vault.handle_duplicate_id(save_id)
-                info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
+                new_id = vault.handle_duplicate_id(save_id) or save_id
+                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
+                info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(16)
-                vault.add_entry(save_id, pwd=pwd, info=info)
-                print(f"[✓] Generated & saved long password for {save_id}: {pwd}")
+                vault.add_entry(new_id, user=user, pwd=pwd, info=info)
+                print(f"[✓] Generated & saved long password for {new_id}: {pwd}")
         else:
             print("[!] Please provide an ID.")
         return
@@ -62,11 +63,12 @@ def run_cli():
     elif args[0] in ("-s", "--short"):
         if len(args) > 1:
             for save_id in args[1:]:
-                vault.handle_duplicate_id(save_id)
-                info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
+                new_id = vault.handle_duplicate_id(save_id) or save_id
+                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
+                info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(8)
-                vault.add_entry(save_id, pwd=pwd, info=info)
-                print(f"[✓] Generated & saved short password for {save_id}: {pwd}")
+                vault.add_entry(new_id, user=user, pwd=pwd, info=info)
+                print(f"[✓] Generated & saved short password for {new_id}: {pwd}")
         else:
             print("[!] Please provide an ID.")
         return
@@ -74,11 +76,12 @@ def run_cli():
     elif args[0] in ("-c", "--custom"):
         if len(args) > 1:
             for save_id in args[1:]:
-                vault.handle_duplicate_id(save_id)
-                user_pwd = input(f"[*] Enter custom password for {save_id}: ")
-                info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
-                vault.add_entry(save_id, pwd=user_pwd, info=info)
-                print(f"[✓] Custom password saved for {save_id}.")
+                new_id = vault.handle_duplicate_id(save_id) or save_id
+                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
+                user_pwd = input(f"[*] Enter custom password for {new_id}: ")
+                info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
+                vault.add_entry(new_id, user=user, pwd=user_pwd, info=info)
+                print(f"[✓] Custom password saved for {new_id}.")
         else:
             print("[!] Please provide an ID.")
         return
