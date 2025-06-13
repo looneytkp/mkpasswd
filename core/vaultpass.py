@@ -17,13 +17,22 @@ BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 
-# Ensure .config exists in ~/.vaultpass
+# Ensure .config exists and is healed if missing or incomplete
 CONFIG_FILE = os.path.join(INSTALL_DIR, ".config")
 DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
 if not os.path.exists(CONFIG_FILE):
     os.makedirs(INSTALL_DIR, exist_ok=True)
     with open(CONFIG_FILE, "w") as f:
         f.write(DEFAULT_CONFIG)
+else:
+    # Heal config if missing keys
+    with open(CONFIG_FILE, "r") as f:
+        existing = f.read()
+    for line in DEFAULT_CONFIG.strip().splitlines():
+        key = line.split("=")[0]
+        if key + "=" not in existing:
+            with open(CONFIG_FILE, "a") as f:
+                f.write(line + "\n")
 
 def get_current_version():
     if os.path.exists(VERSION_FILE):
@@ -78,7 +87,6 @@ import config
 import vault
 
 def main():
-    # For brevity, skipping update checks here. Add if you use updates.
     cli.run_cli()
 
 if __name__ == "__main__":
