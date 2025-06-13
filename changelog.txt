@@ -1,3 +1,16 @@
+Version 1.8.0
+- Fully modularized core code: each function (CLI, update, config, etc.) is now in its own Python file for better maintainability and testing
+- Checks for both essential core scripts and system files (changelog.txt, version.txt) at startup; clear error if missing
+- Improved installation logic and setup.py: better cleanup, silent git output, robust PATH handling with friendlier messages
+- Automatic creation and validation of __init__.py in core/ for reliable imports
+- Ensures config file, changelog, and version are present at runtime; recreates config if deleted
+- New uninstall.py: confirms all deletions (including backups), warns if files are missing, and cleans PATH entries
+- All code now expects/handles runtime directory layout: ~/.vaultpass/{core,system,backup}
+- Improved update logic: checks both version and git commit hash for updates; displays relevant changelog or commit message
+- Comments and usage samples added to all new and refactored modules for easier onboarding and edits
+- Internal: moved all user-editable configs and runtime files into ~/.vaultpass/system for simplicity
+- Ready for future UI changes, AI integration, and advanced features
+
 Version 1.7.0
 - Complete port from Bash to Python for the main vaultpass script
 - Beautiful centered startup banner with emoji key art
