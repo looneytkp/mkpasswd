@@ -3,10 +3,10 @@
 import os
 import subprocess
 import time
-import shutil   # <-- Added
+import shutil
 import requests
 
-from core.cli import print_changelog_box, show_banner
+from cli import print_changelog_box, show_banner
 
 def parse_ver(verstr):
     """Parse version string like '1.8.0' or 'v1.8.0' to tuple of ints."""
@@ -86,7 +86,6 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
         try:
             with open(changelog_file, "r") as f:
                 content = f.read()
-            # Very simple extract, assumes lines start with "Version x.y.z"
             start = content.find(f"Version {remote_version}")
             if start != -1:
                 end = content.find("Version ", start+1)
