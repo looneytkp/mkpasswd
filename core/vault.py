@@ -25,7 +25,7 @@ def require_passphrase_setup(show_hint_only_on_prompt=False):
         print("  - If you forget it, your passwords cannot be recovered.")
         hint = input("[*] Enter a passphrase hint (for your eyes only, can be blank): ").strip()
         if hint == "":
-            print("[!] Warning: Leaving this blank means your vault is NOT protected by a passphrase!")
+            print("[!] Warning: Passwords will not be encrypted!")
         os.makedirs(SYSTEM_DIR, exist_ok=True)
         with open(HINT_FILE, "w") as f:
             f.write(hint)
