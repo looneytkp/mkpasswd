@@ -8,6 +8,7 @@ HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
+INSTALL_DIR_INSTALL = os.path.join(INSTALL_DIR, "install")
 PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
 HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
@@ -34,32 +35,42 @@ def ensure_init_py():
 
 ensure_init_py()  # Always run this at startup
 
-# ----------- Check Required Modules Exist -----------
-REQUIRED_MODULES = [
+# ----------- Check Required Files Exist -----------
+REQUIRED_CORE_FILES = [
     "cli.py",
     "update.py",
     "changelog.py",
     "password_gen.py",
     "config.py",
-    "uninstall.py",
-    "setup.py"  # NEW: include setup.py in core/
+    "vault.py",
 ]
 REQUIRED_SYSTEM_FILES = [
     "changelog.txt",
     "version.txt"
 ]
+REQUIRED_INSTALL_FILES = [
+    "setup.py",
+    "uninstall.py"
+]
 
-missing_core = [f for f in REQUIRED_MODULES if not os.path.isfile(os.path.join(CORE_DIR, f))]
+missing_core = [f for f in REQUIRED_CORE_FILES if not os.path.isfile(os.path.join(CORE_DIR, f))]
 missing_system = [f for f in REQUIRED_SYSTEM_FILES if not os.path.isfile(os.path.join(SYSTEM_DIR, f))]
+missing_install = [f for f in REQUIRED_INSTALL_FILES if not os.path.isfile(os.path.join(INSTALL_DIR, "install", f))]
 
-if missing_core or missing_system:
+if missing_core or missing_system or missing_install:
+    # Always show all missing, but handle setup.py special
+    missing_msgs = []
     if missing_core:
-        print(f"[X] Missing required core files: {', '.join(missing_core)}")
+        missing_msgs.append(f"core files: {', '.join(missing_core)}")
     if missing_system:
-        print(f"[X] Missing required system files: {', '.join(missing_system)}")
-    setup_path = os.path.join(CORE_DIR, "setup.py")
+        missing_msgs.append(f"system files: {', '.join(missing_system)}")
+    if missing_install:
+        missing_msgs.append(f"install files: {', '.join(missing_install)}")
+    print(f"[X] Missing required Vaultpass files: {', '.join(missing_msgs)}")
+
+    setup_path = os.path.join(INSTALL_DIR, "install", "setup.py")
     if os.path.isfile(setup_path):
-        resp = input("[?] Missing files detected. Reinstall Vaultpass now? (Y/n): ").strip().lower()
+        resp = input("[?] Vaultpass is broken or incomplete. Reinstall now? (Y/n): ").strip().lower()
         if resp in ("y", ""):
             print("[*] Reinstalling Vaultpass...")
             subprocess.run(["python3", setup_path])
@@ -76,7 +87,7 @@ import update
 import changelog
 import password_gen
 import config
-import uninstall
+import vault
 
 # ----------- Main Entry Point -----------
 def main():
