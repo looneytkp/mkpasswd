@@ -16,3 +16,6 @@ if __name__ == '__main__':
     import sys
     mode = sys.argv[1] if len(sys.argv) > 1 else "short"
     if mode == "long":
+        print(generate_password(16))
+    else:
+        print(generate_password(8))
