@@ -1,3 +1,4 @@
+import sys
 import textwrap
 
 # -------- Banner generator --------
@@ -85,8 +86,55 @@ def show_changelog(version, lines):
     print_changelog_box(version, lines)
     print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
 
-# ------- CLI dispatcher stub (add your logic here!) -------
+# ------- CLI dispatcher -------
 def run_cli():
-    # Placeholder for CLI logic (parsing, action dispatch)
-    # You’ll expand this as you modularize.
-    pass
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help"):
+        show_help()
+    elif args[0] in ("-a", "--about"):
+        show_features()
+    elif args[0] in ("--changelog",):
+        show_banner()
+        print("Changelog coming soon!\n")
+    elif args[0] in ("--log",):
+        show_banner()
+        print("Log viewer coming soon!\n")
+    elif args[0] in ("--update",):
+        show_banner()
+        print("Update checker coming soon!\n")
+    elif args[0] in ("-b", "--backup"):
+        show_banner()
+        print("Backup feature coming soon!\n")
+    elif args[0] in ("-r", "--restore"):
+        show_banner()
+        print("Restore feature coming soon!\n")
+    elif args[0] in ("-L", "--list"):
+        show_banner()
+        print("Password listing coming soon!\n")
+    elif args[0] in ("-S", "--search"):
+        show_banner()
+        print("Password search coming soon!\n")
+    elif args[0] in ("-l", "--long"):
+        show_banner()
+        print("Long password generation coming soon!\n")
+    elif args[0] in ("-s", "--short"):
+        show_banner()
+        print("Short password generation coming soon!\n")
+    elif args[0] in ("-c", "--custom"):
+        show_banner()
+        print("Custom password saving coming soon!\n")
+    elif args[0] in ("-d", "--delete"):
+        show_banner()
+        print("Password delete coming soon!\n")
+    elif args[0] in ("-e", "--edit"):
+        show_banner()
+        print("Edit entry coming soon!\n")
+    elif args[0] in ("--change-passphrase",):
+        show_banner()
+        print("Passphrase change coming soon!\n")
+    elif args[0] in ("-u", "--uninstall"):
+        show_banner()
+        print("Uninstall feature coming soon!\n")
+    else:
+        show_banner()
+        print(f"[X] Unknown option: {args[0]}\nRun 'vaultpass -h' for help.\n")
