@@ -58,7 +58,6 @@ missing_system = [f for f in REQUIRED_SYSTEM_FILES if not os.path.isfile(os.path
 missing_install = [f for f in REQUIRED_INSTALL_FILES if not os.path.isfile(os.path.join(INSTALL_DIR, "install", f))]
 
 if missing_core or missing_system or missing_install:
-    # Always show all missing, but handle setup.py special
     missing_msgs = []
     if missing_core:
         missing_msgs.append(f"core files: {', '.join(missing_core)}")
