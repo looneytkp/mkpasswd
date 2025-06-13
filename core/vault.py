@@ -26,11 +26,16 @@ def hash_passphrase(passphrase):
     return hashlib.sha256(passphrase.encode()).hexdigest()
 
 def require_passphrase_setup(show_hint_only_on_prompt=False):
+    from cli import show_banner  # local import to avoid circular
+
     if not os.path.isfile(HASH_FILE):
-        # First run: prompt user to set a passphrase (with confirmation, up to 3 attempts)
+        show_banner()
+        print("First run: You must set a master passphrase.")
+        print("  - This passphrase protects all your saved passwords.")
+        print("  - If you forget it, your passwords cannot be recovered.")
         for attempt in range(3):
-            passphrase = getpass.getpass("[*] Enter master passphrase (leave blank for NO encryption): ")
-            confirm = getpass.getpass("[*] Confirm master passphrase: ")
+            passphrase = getpass.getpass("[*] Enter a passphrase [Leave blank for NO Encryption]: ")
+            confirm = getpass.getpass("[*] Confirm passphrase: ")
             if passphrase == confirm:
                 if passphrase == "":
                     print("[!] Warning: Passwords will NOT be encrypted!")
