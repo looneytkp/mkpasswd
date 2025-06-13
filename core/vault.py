@@ -18,24 +18,29 @@ def log_action(msg):
     with open(LOG_FILE, "a") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
 
-def require_passphrase_setup():
+def require_passphrase_setup(show_hint_only_on_prompt=False):
     if not os.path.isfile(HINT_FILE):
         print("[*] First run: You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
         print("  - If you forget it, your passwords cannot be recovered.")
-        hint = input("[*] Enter a passphrase hint (for your eyes only, can be blank): ")
+        hint = input("[*] Enter a passphrase hint (for your eyes only, can be blank): ").strip()
+        if hint == "":
+            print("[!] Warning: Leaving this blank means your vault is NOT protected by a passphrase!")
         os.makedirs(SYSTEM_DIR, exist_ok=True)
         with open(HINT_FILE, "w") as f:
             f.write(hint)
         log_action("Set passphrase hint")
         print("[*] Passphrase hint saved.")
-    if os.path.isfile(HINT_FILE):
+        if hint:
+            print("💡 Hint:", hint)
+    elif show_hint_only_on_prompt:
         with open(HINT_FILE) as f:
-            print("💡 Hint:", f.read().strip())
+            hint = f.read().strip()
+            if hint:
+                print("💡 Hint:", hint)
 
 def list_entries():
-    require_passphrase_setup()
-    # Simulate decrypt (replace with actual decryption in production)
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault found.")
         return
@@ -45,7 +50,7 @@ def list_entries():
     log_action("Listed all passwords")
 
 def add_entry(id, user="", pwd="", info=""):
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     os.makedirs(SYSTEM_DIR, exist_ok=True)
     line = f"{id}:|{user}|{pwd}|{info}\n"
     with open(PASS_FILE, "a") as f:
@@ -54,7 +59,7 @@ def add_entry(id, user="", pwd="", info=""):
     log_action(f"Saved password for {id}")
 
 def edit_entry(id, new_user):
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault found.")
         return
@@ -79,7 +84,7 @@ def edit_entry(id, new_user):
         print("[X] ID not found.")
 
 def delete_entry(id):
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault found.")
         return
@@ -100,7 +105,7 @@ def delete_entry(id):
         print("[X] ID not found.")
 
 def search_entry(id):
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault found.")
         return
@@ -115,7 +120,7 @@ def search_entry(id):
         print(f"[X] ID {id} not found.")
 
 def backup_vault():
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     os.makedirs(BACKUP_DIR, exist_ok=True)
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault to backup.")
@@ -129,7 +134,7 @@ def backup_vault():
     log_action("Vault backup")
 
 def restore_vault(backup_name):
-    require_passphrase_setup()
+    require_passphrase_setup(show_hint_only_on_prompt=True)
     backup_file = os.path.join(BACKUP_DIR, backup_name)
     if not os.path.isfile(backup_file):
         print("[X] Backup not found.")
@@ -143,7 +148,6 @@ def restore_vault(backup_name):
 
 # Example of usage for direct script run
 if __name__ == "__main__":
-    # Minimal CLI for direct test (replace with argparse if needed)
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "list":
         list_entries()
