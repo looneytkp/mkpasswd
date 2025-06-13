@@ -8,7 +8,6 @@ import hashlib
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
 CONFIG_FILE = os.path.join(INSTALL_DIR, ".config")
-DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
 BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
@@ -16,7 +15,8 @@ HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
 HASH_FILE = os.path.join(SYSTEM_DIR, "passphrase_hash.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
 
-# --------- Config Healing ---------
+DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
+
 def ensure_config():
     if not os.path.exists(CONFIG_FILE):
         os.makedirs(INSTALL_DIR, exist_ok=True)
@@ -55,18 +55,19 @@ def require_passphrase_setup():
     passphrase_state = config.get('passphrase_set', 'no')
 
     # 1. No encryption requested (by config)
-    if enc_state == "off":
+    if enc_state == "off" or passphrase_state == "no":
         print("[!] No encryption enabled. Proceeding without passphrase.")
         return False
 
-    # 2. Encryption requested, but passphrase not set
-    if passphrase_state == "no":
+    # 2. Passphrase not set yet, prompt for setup
+    if not os.path.isfile(HASH_FILE):
         print("[!] You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
         print("  - If you forget it, your passwords cannot be recovered.")
         passphrase = getpass.getpass("[*] Enter a passphrase [Leave blank for NO Encryption]: ")
         if passphrase == "":
             print("Passphrase not set, passwords won't be encrypted")
+            # Update config file
             config['encryption'] = "off"
             config['passphrase_set'] = "no"
             save_config(config)
@@ -108,7 +109,7 @@ def require_passphrase_setup():
 
 def list_entries():
     if require_passphrase_setup() is False:
-        pass  # Proceed unencrypted
+        pass
     if not os.path.isfile(PASS_FILE):
         print("[!] No vault found.")
         return
@@ -219,23 +220,3 @@ def restore_vault(backup_name):
         shutil.copy2(hint_file, HINT_FILE)
     print("[✓] Restored Vaultpass vault from backup.")
     log_action(f"Vault restored from {backup_name}")
-
-# Example of usage for direct script run
-if __name__ == "__main__":
-    cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-    if cmd == "list":
-        list_entries()
-    elif cmd == "add":
-        add_entry(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
-    elif cmd == "edit":
-        edit_entry(sys.argv[2], sys.argv[3])
-    elif cmd == "delete":
-        delete_entry(sys.argv[2])
-    elif cmd == "search":
-        search_entry(sys.argv[2])
-    elif cmd == "backup":
-        backup_vault()
-    elif cmd == "restore":
-        restore_vault(sys.argv[2])
-    else:
-        print("Usage: vault.py [list|add|edit|delete|search|backup|restore]")
