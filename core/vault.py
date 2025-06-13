@@ -1,3 +1,5 @@
+# core/vault.py
+
 import os
 import sys
 import time
@@ -26,6 +28,7 @@ def hash_passphrase(passphrase):
 def require_passphrase_setup(show_hint_only_on_prompt=False):
     from cli import show_banner  # local import to avoid circular
 
+    # First run: Passphrase setup
     if not os.path.isfile(HASH_FILE):
         show_banner()
         print("First run: You must set a master passphrase.")
@@ -35,12 +38,14 @@ def require_passphrase_setup(show_hint_only_on_prompt=False):
             passphrase = getpass.getpass("[*] Enter a passphrase [Leave blank for NO Encryption]: ")
             if passphrase == "":
                 print("[!] Warning: Passwords will NOT be encrypted!")
-                if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
-                if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
+                # Save empty hash file to indicate "no encryption"
+                with open(HASH_FILE, "w") as f:
+                    f.write("")
+                if os.path.exists(HINT_FILE):
+                    os.remove(HINT_FILE)
                 break
             confirm = getpass.getpass("[*] Confirm passphrase: ")
             if passphrase == confirm:
-                # Save passphrase hash
                 with open(HASH_FILE, "w") as f:
                     f.write(hash_passphrase(passphrase))
                 hint = input("[*] Enter a passphrase hint (optional): ").strip()
@@ -55,8 +60,12 @@ def require_passphrase_setup(show_hint_only_on_prompt=False):
                 print(f"[X] Passphrases do not match. {2 - attempt} tries left.")
         else:
             print("Passphrase not set, passwords won't be encrypted")
-            if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
-            if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
+            with open(HASH_FILE, "w") as f:
+                f.write("")
+            if os.path.exists(HINT_FILE):
+                os.remove(HINT_FILE)
+
+    # All subsequent runs:
     elif os.path.isfile(HASH_FILE):
         with open(HASH_FILE) as f:
             saved_hash = f.read().strip()
