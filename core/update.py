@@ -134,6 +134,6 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
         return
 
     else:
-        print("[✓] Vaultpass is up to date.")
+        #print("[✓] Vaultpass is up to date.")
         open(last_update_file, "a").close()
         return
