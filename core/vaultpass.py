@@ -19,6 +19,23 @@ BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 
+# ----------- Ensure .config Exists in Root With Defaults -----------
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), ".config")
+DEFAULT_CONFIG = "encryption=off\npassphrase_set=no\ntheme=light\n"
+
+if not os.path.exists(CONFIG_FILE):
+    with open(CONFIG_FILE, "w") as f:
+        f.write(DEFAULT_CONFIG)
+
+def load_config():
+    config = {}
+    with open(CONFIG_FILE, "r") as f:
+        for line in f:
+            if '=' in line:
+                k, v = line.strip().split('=', 1)
+                config[k] = v
+    return config
+
 def get_current_version():
     if os.path.exists(VERSION_FILE):
         with open(VERSION_FILE) as f:
