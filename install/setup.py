@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import shutil
+import time  # Added for timestamping last update check
 
 # Import banner from cli.py
 CORE_DIR = os.path.join(os.path.expanduser("~"), ".vaultpass", "core")
@@ -112,6 +113,12 @@ def main():
     ensure_core_inits()
     install_bin()
     update_path()
+
+    # Create .last_update_check file with current timestamp on fresh install
+    last_update_file = os.path.join(SYSTEM_DIR, ".last_update_check")
+    with open(last_update_file, "w") as f:
+            f.write(str(int(time.time())))
+
     print("[✓] Vaultpass installed successfully.")
     print("[!] Run 'vaultpass -h' to begin.")
     show_changelog()
