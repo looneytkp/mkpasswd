@@ -31,7 +31,7 @@ def show_banner():
     if os.path.exists(version_file):
         with open(version_file) as f:
             version = f.read().strip()
-    print(make_centered_banner(version or "Setup"))
+    print(make_centered_banner(""))
 
 show_banner()
 
