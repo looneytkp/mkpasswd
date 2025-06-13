@@ -22,7 +22,6 @@ Options:
 """)
 
 def run_cli():
-    #show_banner()
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         show_help()
