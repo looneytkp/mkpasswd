@@ -1,25 +1,7 @@
 import sys
-import textwrap
 import vault
 import password_gen
-
-def make_centered_banner(_=None):
-    width = 37
-    line1 = "VAULTPASS"
-    line2 = "Secure Password Manager"
-    def pad(s):
-        total = width - 2 - len(s)
-        left = total // 2
-        right = total - left
-        return " " * left + s + " " * right
-    top = "╔" + "═" * (width - 2) + "╗"
-    mid1 = "║" + pad(line1) + "║"
-    mid2 = "║" + pad(line2) + "║"
-    bot = "╚" + "═" * (width - 2) + "╝"
-    return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
-
-def show_banner(version=None):
-    print(make_centered_banner())
+from banner_utils import show_banner
 
 def show_help(version=None):
     show_banner()
@@ -51,10 +33,9 @@ def run_cli():
         if len(args) > 1:
             for save_id in args[1:]:
                 new_id = vault.handle_duplicate_id(save_id) or save_id
-                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
                 info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(16)
-                vault.add_entry(new_id, user=user, pwd=pwd, info=info)
+                vault.add_entry(new_id, pwd=pwd, info=info)
                 print(f"[✓] Generated & saved long password for {new_id}: {pwd}")
         else:
             print("[!] Please provide an ID.")
@@ -64,10 +45,9 @@ def run_cli():
         if len(args) > 1:
             for save_id in args[1:]:
                 new_id = vault.handle_duplicate_id(save_id) or save_id
-                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
                 info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(8)
-                vault.add_entry(new_id, user=user, pwd=pwd, info=info)
+                vault.add_entry(new_id, pwd=pwd, info=info)
                 print(f"[✓] Generated & saved short password for {new_id}: {pwd}")
         else:
             print("[!] Please provide an ID.")
@@ -77,10 +57,9 @@ def run_cli():
         if len(args) > 1:
             for save_id in args[1:]:
                 new_id = vault.handle_duplicate_id(save_id) or save_id
-                user = input(f"[*] Username/email for {new_id} (leave blank to skip): ").strip()
                 user_pwd = input(f"[*] Enter custom password for {new_id}: ")
                 info = input(f"[*] Optional info/description for {new_id} (leave blank to skip): ").strip()
-                vault.add_entry(new_id, user=user, pwd=user_pwd, info=info)
+                vault.add_entry(new_id, pwd=user_pwd, info=info)
                 print(f"[✓] Custom password saved for {new_id}.")
         else:
             print("[!] Please provide an ID.")
