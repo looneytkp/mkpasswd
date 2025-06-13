@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import shutil
+import getpass
+import hashlib
 
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
@@ -11,6 +13,7 @@ SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
 BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 PASS_FILE = os.path.join(SYSTEM_DIR, "passwords.gpg")
 HINT_FILE = os.path.join(SYSTEM_DIR, "passphrase_hint.txt")
+HASH_FILE = os.path.join(SYSTEM_DIR, "passphrase_hash.txt")
 LOG_FILE = os.path.join(SYSTEM_DIR, "vaultpass.log")
 
 def log_action(msg):
@@ -18,26 +21,60 @@ def log_action(msg):
     with open(LOG_FILE, "a") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
 
+def hash_passphrase(passphrase):
+    # Simple hash for illustration; use stronger hash+salt for production!
+    return hashlib.sha256(passphrase.encode()).hexdigest()
+
 def require_passphrase_setup(show_hint_only_on_prompt=False):
-    if not os.path.isfile(HINT_FILE):
-        print("[*] First run: You must set a master passphrase.")
-        print("  - This passphrase protects all your saved passwords.")
-        print("  - If you forget it, your passwords cannot be recovered.")
-        hint = input("[*] Enter a passphrase hint (for your eyes only, can be blank): ").strip()
-        if hint == "":
-            print("[!] Warning: Passwords will not be encrypted!")
-        os.makedirs(SYSTEM_DIR, exist_ok=True)
-        with open(HINT_FILE, "w") as f:
-            f.write(hint)
-        log_action("Set passphrase hint")
-        print("[*] Passphrase hint saved.")
-        if hint:
-            print("💡 Hint:", hint)
-    elif show_hint_only_on_prompt:
-        with open(HINT_FILE) as f:
-            hint = f.read().strip()
-            if hint:
-                print("💡 Hint:", hint)
+    if not os.path.isfile(HASH_FILE):
+        # First run: prompt user to set a passphrase (with confirmation, up to 3 attempts)
+        for attempt in range(3):
+            passphrase = getpass.getpass("[*] Enter master passphrase (leave blank for NO encryption): ")
+            confirm = getpass.getpass("[*] Confirm master passphrase: ")
+            if passphrase == confirm:
+                if passphrase == "":
+                    print("[!] Warning: Passwords will NOT be encrypted!")
+                    if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
+                    if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
+                    break
+                # Save passphrase hash
+                with open(HASH_FILE, "w") as f:
+                    f.write(hash_passphrase(passphrase))
+                hint = input("[*] Enter a passphrase hint (optional): ").strip()
+                with open(HINT_FILE, "w") as f:
+                    f.write(hint)
+                log_action("Set master passphrase and hint")
+                print("[*] Passphrase and hint saved.")
+                if hint:
+                    print("💡 Hint:", hint)
+                break
+            else:
+                print(f"[X] Passphrases do not match. {2 - attempt} tries left.")
+        else:
+            print("Passphrase not set, passwords won't be encrypted")
+            if os.path.exists(HINT_FILE): os.remove(HINT_FILE)
+            if os.path.exists(HASH_FILE): os.remove(HASH_FILE)
+    elif os.path.isfile(HASH_FILE):
+        with open(HASH_FILE) as f:
+            saved_hash = f.read().strip()
+        if saved_hash == "":
+            print("[!] No encryption enabled. Proceeding without passphrase.")
+            return
+        for _ in range(3):
+            passphrase = getpass.getpass("[*] Enter your master passphrase: ")
+            if hash_passphrase(passphrase) == saved_hash:
+                if show_hint_only_on_prompt and os.path.isfile(HINT_FILE):
+                    with open(HINT_FILE) as hf:
+                        hint = hf.read().strip()
+                        if hint:
+                            print("💡 Hint:", hint)
+                return
+            else:
+                print("[X] Incorrect passphrase.")
+        print("[X] Too many incorrect attempts. Exiting.")
+        sys.exit(1)
+    else:
+        print("[!] No encryption enabled. Proceeding without passphrase.")
 
 def list_entries():
     require_passphrase_setup(show_hint_only_on_prompt=True)
