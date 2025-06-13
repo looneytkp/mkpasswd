@@ -134,6 +134,7 @@ Options:
   -a, --about                Show all features
   -h, --help                 Show this help
   --changelog                Show latest changelog
+
 EOF
 }
 
