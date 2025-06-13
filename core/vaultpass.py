@@ -21,7 +21,8 @@ REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main
 
 # ----------- Ensure .config Exists in Root With Defaults -----------
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), ".config")
-DEFAULT_CONFIG = "encryption=off\npassphrase_set=no\ntheme=light\n"
+# Default now enables encryption prompt on first run:
+DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
 
 if not os.path.exists(CONFIG_FILE):
     with open(CONFIG_FILE, "w") as f:
