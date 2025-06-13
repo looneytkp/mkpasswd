@@ -1,15 +1,17 @@
-# core/update.py
-
 import os
+import sys
 import subprocess
 import time
 import shutil
 import requests
 
-from cli import print_changelog_box, show_banner
+CORE_DIR = os.path.dirname(os.path.abspath(__file__))
+if CORE_DIR not in sys.path:
+    sys.path.insert(0, CORE_DIR)
+
+import cli
 
 def parse_ver(verstr):
-    """Parse version string like '1.8.0' or 'v1.8.0' to tuple of ints."""
     return tuple(map(int, verstr.strip().lstrip("vV").split(".")))
 
 def get_local_commit(repo_path):
@@ -44,7 +46,6 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
     now = int(time.time())
     need_update = False
 
-    # 3-day auto-update logic (unless forced by flag)
     if os.path.exists(last_update_file):
         last = int(os.path.getmtime(last_update_file))
         diff_days = (now - last) // 86400
@@ -58,10 +59,8 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
 
     print("[*] Checking for Vaultpass updates...")
 
-    # Read local version
     local_version = current_version
 
-    # Get remote version string
     try:
         r = requests.get(remote_version_url, timeout=5)
         r.raise_for_status()
@@ -71,17 +70,14 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
         open(last_update_file, "a").close()
         return
 
-    # Get commit hashes for minor update check
     local_commit = get_local_commit(install_dir)
     remote_commit = get_remote_commit(install_dir)
 
-    # Version or commit update logic
     version_update = parse_ver(local_version) < parse_ver(remote_version)
     commit_update = (local_commit and remote_commit and local_commit != remote_commit)
 
     if version_update:
         print(f"[!] New version: v{remote_version}")
-        # Parse changelog file for this version
         lines = []
         try:
             with open(changelog_file, "r") as f:
@@ -92,9 +88,9 @@ def check_for_updates(current_version, version_file, changelog_file, install_dir
                 lines = content[start:end].strip().splitlines()[1:] if end != -1 else content[start:].strip().splitlines()[1:]
         except Exception:
             pass
-        show_banner(remote_version)
+        cli.show_banner(remote_version)
         if lines:
-            print_changelog_box(remote_version, lines)
+            cli.print_changelog_box(remote_version, lines)
         print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
         update = input("[?] Update? (Y/n): ").strip().lower()
         if update in ("y", ""):
