@@ -1,12 +1,11 @@
-# core/cli.py
 import textwrap
 
 # -------- Banner generator --------
-def make_centered_banner(version):
+def make_centered_banner(_=None):
     """Return ASCII banner string for Vaultpass (centered)."""
     width = 37
-    line1 = "🔑  VAULTPASS  🔒"
-    line2 = f"Secure Password Manager v{version}"
+    line1 = "VAULTPASS"
+    line2 = "Secure Password Manager"
     def pad(s):
         total = width - 2 - len(s)
         left = total // 2
@@ -18,13 +17,13 @@ def make_centered_banner(version):
     bot = "╚" + "═" * (width - 2) + "╝"
     return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
 
-def show_banner(version):
+def show_banner(version=None):
     """Print the Vaultpass banner."""
-    print(make_centered_banner(version))
+    print(make_centered_banner())
 
 # -------- Help/usage --------
-def show_help(version):
-    show_banner(version)
+def show_help(version=None):
+    show_banner()
     print("""Usage: vaultpass [OPTIONS]
 Options:
   -l, --long [ID ...]        Generate long password(s)
@@ -47,8 +46,8 @@ Options:
 """)
 
 # -------- About/features --------
-def show_features(version):
-    show_banner(version)
+def show_features(version=None):
+    show_banner()
     print("""
 Vaultpass Functions:
 - Generate secure passwords (short, long, or custom)
@@ -79,7 +78,7 @@ def print_changelog_box(version, lines, width=55):
 
 def show_changelog(version, lines):
     """Show banner, changelog box, and link."""
-    show_banner(version)
+    show_banner()
     if not lines:
         print("[!] No changelog found for this version.")
         return
