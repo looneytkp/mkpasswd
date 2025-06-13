@@ -2,9 +2,6 @@ import sys
 import textwrap
 import vault
 import password_gen
-import update
-import subprocess
-import os
 
 def make_centered_banner(_=None):
     width = 37
@@ -32,26 +29,28 @@ Options:
   -s, --short [ID ...]       Generate short password(s)
   -c, --custom [ID ...]      Save custom password(s)
   -L, --list                 List all saved passwords
-  -S, --search [ID ...]      Search for passwords by ID
-  -f, --find [ID ...]        Alias for search
+  -f, --find [ID ...]        Search for passwords by ID
   -d, --delete [ID ...]      Delete password(s) by ID
   -e, --edit [ID]            Edit username/email
   -b, --backup               Backup passwords
   -r, --restore [filename]   Restore from backup
-  -u, --update               Check for updates
   -U, --uninstall            Uninstall Vaultpass
+  -u, --update               Check for updates
   -h, --help                 Show this help
 """)
 
 def run_cli():
+    show_banner()
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         show_help()
         return
 
+    # Password Generation & Save
     elif args[0] in ("-l", "--long"):
         if len(args) > 1:
             for save_id in args[1:]:
+                vault.handle_duplicate_id(save_id)
                 info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(16)
                 vault.add_entry(save_id, pwd=pwd, info=info)
@@ -63,6 +62,7 @@ def run_cli():
     elif args[0] in ("-s", "--short"):
         if len(args) > 1:
             for save_id in args[1:]:
+                vault.handle_duplicate_id(save_id)
                 info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
                 pwd = password_gen.generate_password(8)
                 vault.add_entry(save_id, pwd=pwd, info=info)
@@ -74,6 +74,7 @@ def run_cli():
     elif args[0] in ("-c", "--custom"):
         if len(args) > 1:
             for save_id in args[1:]:
+                vault.handle_duplicate_id(save_id)
                 user_pwd = input(f"[*] Enter custom password for {save_id}: ")
                 info = input(f"[*] Optional info/description for {save_id} (leave blank to skip): ").strip()
                 vault.add_entry(save_id, pwd=user_pwd, info=info)
@@ -86,7 +87,7 @@ def run_cli():
         vault.list_entries()
         return
 
-    elif args[0] in ("-S", "--search", "-f", "--find"):
+    elif args[0] in ("-f", "--find"):
         if len(args) > 1:
             for search_id in args[1:]:
                 vault.search_entry(search_id)
@@ -121,16 +122,36 @@ def run_cli():
             print("[!] Please provide backup filename to restore.")
         return
 
-    elif args[0] in ("-u", "--update"):
-        update.manual_check()
-        return
-
     elif args[0] in ("-U", "--uninstall"):
         uninstall_path = os.path.expanduser("~/.vaultpass/install/uninstall.py")
-        if os.path.isfile(uninstall_path):
+        if os.path.exists(uninstall_path):
+            import subprocess
             subprocess.run(["python3", uninstall_path])
         else:
-            print("[X] uninstall.py not found.")
+            print("[!] Uninstall script not found.")
+        return
+
+    elif args[0] in ("-u", "--update"):
+        from update import check_for_updates
+        HOME = os.path.expanduser("~")
+        INSTALL_DIR = os.path.join(HOME, ".vaultpass")
+        SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
+        VERSION_FILE = os.path.join(SYSTEM_DIR, "version.txt")
+        CHANGELOG_FILE = os.path.join(SYSTEM_DIR, "changelog.txt")
+        CORE_DIR = os.path.join(INSTALL_DIR, "core")
+        BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
+        LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
+        REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
+        check_for_updates(
+            current_version=open(VERSION_FILE).read().strip() if os.path.exists(VERSION_FILE) else "0.0.0",
+            version_file=VERSION_FILE,
+            changelog_file=CHANGELOG_FILE,
+            install_dir=INSTALL_DIR,
+            core_dir=CORE_DIR,
+            bin_path=BIN_PATH,
+            last_update_file=LAST_UPDATE_FILE,
+            remote_version_url=REMOTE_VERSION_URL
+        )
         return
 
     else:
