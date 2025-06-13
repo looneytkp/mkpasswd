@@ -2,6 +2,9 @@ import sys
 import textwrap
 import vault
 import password_gen
+import update
+import subprocess
+import os
 
 def make_centered_banner(_=None):
     width = 37
@@ -30,10 +33,13 @@ Options:
   -c, --custom [ID ...]      Save custom password(s)
   -L, --list                 List all saved passwords
   -S, --search [ID ...]      Search for passwords by ID
+  -f, --find [ID ...]        Alias for search
   -d, --delete [ID ...]      Delete password(s) by ID
   -e, --edit [ID]            Edit username/email
   -b, --backup               Backup passwords
   -r, --restore [filename]   Restore from backup
+  -u, --update               Check for updates
+  -U, --uninstall            Uninstall Vaultpass
   -h, --help                 Show this help
 """)
 
@@ -43,7 +49,6 @@ def run_cli():
         show_help()
         return
 
-    # Password Generation & Save
     elif args[0] in ("-l", "--long"):
         if len(args) > 1:
             for save_id in args[1:]:
@@ -81,7 +86,7 @@ def run_cli():
         vault.list_entries()
         return
 
-    elif args[0] in ("-S", "--search"):
+    elif args[0] in ("-S", "--search", "-f", "--find"):
         if len(args) > 1:
             for search_id in args[1:]:
                 vault.search_entry(search_id)
@@ -114,6 +119,18 @@ def run_cli():
             vault.restore_vault(args[1])
         else:
             print("[!] Please provide backup filename to restore.")
+        return
+
+    elif args[0] in ("-u", "--update"):
+        update.manual_check()
+        return
+
+    elif args[0] in ("-U", "--uninstall"):
+        uninstall_path = os.path.expanduser("~/.vaultpass/install/uninstall.py")
+        if os.path.isfile(uninstall_path):
+            subprocess.run(["python3", uninstall_path])
+        else:
+            print("[X] uninstall.py not found.")
         return
 
     else:
