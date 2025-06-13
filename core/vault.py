@@ -30,7 +30,7 @@ def require_passphrase_setup(show_hint_only_on_prompt=False):
 
     if not os.path.isfile(HASH_FILE):
         show_banner()
-        print("First run: You must set a master passphrase.")
+        print("[✓] First run: You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
         print("  - If you forget it, your passwords cannot be recovered.")
         for attempt in range(3):
