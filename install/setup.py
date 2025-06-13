@@ -57,15 +57,16 @@ def ensure_core_inits():
     ensure_init_py(CORE_DIR)
 
 def clone_or_update_repo():
+    print("[*] Installing Vaultpass...")
     if os.path.exists(INSTALL_DIR):
-        resp = input("[?] Existing Vaultpass installation found. Delete and reinstall? (Y/n): ").strip().lower()
+        print("[!] Existing Vaultpass installation found.")
+        resp = input("[?] Reinstall Vaultpass ? (Y/n): ").strip().lower()
         if resp in ("y", ""):
             shutil.rmtree(INSTALL_DIR)
             print("[✓] Removed previous Vaultpass installation.")
         else:
             print("[X] Install aborted.")
             sys.exit(1)
-    print("[*] Installing Vaultpass...")
     rc = subprocess.run(
         ["git", "clone", REPO_URL, INSTALL_DIR],
         stdout=subprocess.DEVNULL,
