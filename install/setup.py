@@ -4,16 +4,36 @@ import sys
 import subprocess
 import shutil
 
+# Import banner from cli.py
+CORE_DIR = os.path.join(os.path.expanduser("~"), ".vaultpass", "core")
+sys.path.insert(0, CORE_DIR)
+try:
+    from cli import make_centered_banner
+except ImportError:
+    # fallback if cli.py isn't present yet
+    def make_centered_banner(_):
+        return "\n=== Vaultpass Installer ===\n"
+
 REPO_URL = "https://github.com/looneytkp/vaultpass.git"
 
 HOME = os.path.expanduser("~")
 INSTALL_DIR = os.path.join(HOME, ".vaultpass")
-CORE_DIR = os.path.join(INSTALL_DIR, "core")
 SYSTEM_DIR = os.path.join(INSTALL_DIR, "system")
 BACKUP_DIR = os.path.join(INSTALL_DIR, "backup")
 BIN_DIR = os.path.join(HOME, ".local", "bin")
 LAUNCHER = "vaultpass"
 LOCAL_BIN = os.path.join(BIN_DIR, LAUNCHER)
+
+# Show banner at the very top
+def show_banner():
+    version = ""
+    version_file = os.path.join(SYSTEM_DIR, "version.txt")
+    if os.path.exists(version_file):
+        with open(version_file) as f:
+            version = f.read().strip()
+    print(make_centered_banner(version or "Setup"))
+
+show_banner()
 
 def ensure_python3():
     if not shutil.which("python3"):
@@ -76,6 +96,14 @@ def update_path():
     else:
         print(f"[✓] Vaultpass PATH already set.")
 
+def show_changelog():
+    changelog_file = os.path.join(SYSTEM_DIR, "changelog.txt")
+    if os.path.exists(changelog_file):
+        with open(changelog_file) as f:
+            lines = f.readlines()
+        print("\n[*] Recent changes:\n" + "".join(lines[:20]))
+        print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
+
 def main():
     ensure_python3()
     setup_folders()
@@ -85,6 +113,7 @@ def main():
     update_path()
     print("[✓] Vaultpass installed successfully.")
     print("[!] Run 'vaultpass -h' to begin.")
+    show_changelog()
 
 if __name__ == "__main__":
     main()
