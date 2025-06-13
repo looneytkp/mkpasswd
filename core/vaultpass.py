@@ -19,9 +19,8 @@ BIN_PATH = os.path.join(HOME, ".local", "bin", "vaultpass")
 LAST_UPDATE_FILE = os.path.join(SYSTEM_DIR, ".last_update_check")
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
 
-# ----------- Ensure .config Exists in Root With Defaults -----------
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), ".config")
-# Default now enables encryption prompt on first run:
+# ----------- Ensure .config Exists in ~/.vaultpass With Defaults -----------
+CONFIG_FILE = os.path.join(INSTALL_DIR, ".config")
 DEFAULT_CONFIG = "encryption=on\npassphrase_set=no\ntheme=light\n"
 
 if not os.path.exists(CONFIG_FILE):
