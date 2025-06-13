@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import subprocess
 
 # ----------- Constants for Folder Structure -----------
 HOME = os.path.expanduser("~")
@@ -40,7 +41,8 @@ REQUIRED_MODULES = [
     "changelog.py",
     "password_gen.py",
     "config.py",
-    "uninstall.py"
+    "uninstall.py",
+    "setup.py"  # NEW: include setup.py in core/
 ]
 REQUIRED_SYSTEM_FILES = [
     "changelog.txt",
@@ -55,6 +57,16 @@ if missing_core or missing_system:
         print(f"[X] Missing required core files: {', '.join(missing_core)}")
     if missing_system:
         print(f"[X] Missing required system files: {', '.join(missing_system)}")
+    setup_path = os.path.join(CORE_DIR, "setup.py")
+    if os.path.isfile(setup_path):
+        resp = input("[?] Missing files detected. Reinstall Vaultpass now? (Y/n): ").strip().lower()
+        if resp in ("y", ""):
+            print("[*] Reinstalling Vaultpass...")
+            subprocess.run(["python3", setup_path])
+        else:
+            print("[X] Aborted. Vaultpass may not work correctly until you reinstall.")
+    else:
+        print("[X] setup.py is missing. Please reinstall Vaultpass from GitHub:\n    https://github.com/looneytkp/vaultpass")
     sys.exit(1)
 
 # ----------- Import Modular Code -----------
