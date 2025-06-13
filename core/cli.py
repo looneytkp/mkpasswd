@@ -1,3 +1,4 @@
+import os
 import sys
 import vault
 import password_gen
