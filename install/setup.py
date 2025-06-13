@@ -38,23 +38,13 @@ def ensure_core_inits():
 
 def clone_or_update_repo():
     if os.path.exists(INSTALL_DIR):
-        if not os.path.exists(os.path.join(INSTALL_DIR, ".git")):
+        resp = input("[?] Existing Vaultpass installation found. Delete and reinstall? (Y/n): ").strip().lower()
+        if resp in ("y", ""):
+            shutil.rmtree(INSTALL_DIR)
             print("[✓] Removed previous Vaultpass installation.")
-            resp = input("[?] Delete and reinstall? (Y/n): ").strip().lower()
-            if resp in ("y", ""):
-                shutil.rmtree(INSTALL_DIR)
-            else:
-                print("[X] Install aborted.")
-                sys.exit(1)
         else:
-            print("[*] Updating Vaultpass...")
-            subprocess.run(
-                ["git", "pull", "origin", "main"],
-                cwd=INSTALL_DIR,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            return
+            print("[X] Install aborted.")
+            sys.exit(1)
     print("[*] Installing Vaultpass...")
     rc = subprocess.run(
         ["git", "clone", REPO_URL, INSTALL_DIR],
