@@ -111,19 +111,16 @@ def _write_pass_lines(lines):
         f.writelines(lines)
 
 def handle_duplicate_id(save_id):
-    # Check if ID exists and prompt for action
     lines = _read_pass_lines()
     id_found = any(line.startswith(f"{save_id}:") for line in lines)
     if not id_found:
-        return
+        return None  # Means ID is not duplicated, so use as is
     while True:
         resp = input(f"[!] ID '{save_id}' already exists. [O]verwrite, [A]ppend, [C]ancel? (o/a/c): ").strip().lower()
         if resp == "o":
-            # Overwrite: remove old entry
             _write_pass_lines([line for line in lines if not line.startswith(f"{save_id}:")])
-            break
+            return save_id
         elif resp == "a":
-            # Append: find next available suffix
             count = 2
             new_id = f"{save_id}_{count}"
             existing_ids = [line.split(":")[0] for line in lines]
