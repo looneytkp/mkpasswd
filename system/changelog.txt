@@ -1,3 +1,12 @@
+v1.9.0
+- Duplicate ID handling
+- Info/description now supported for every password
+- Bug fixes
+- UI improvements
+- CLI flags updated for all major actions
+- Logging removed for privacy
+- Code cleaned up and all redundancies fixed
+
 v1.8.0
 - Core fully modularized for easier maintenance
 - Improved install, update & uninstall
