@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Show nice banner from cli.py
+python3 -c "
+import sys, os
+core = os.path.join(os.path.expanduser('~'), '.vaultpass', 'core')
+sys.path.insert(0, core)
+try:
+    from cli import make_centered_banner
+    print(make_centered_banner(''))
+except Exception:
+    print('\n=== Vaultpass Uninstaller ===\n')
+"
+
 PROJECT_DIR="$(cd "$(dirname "$0")/.."; pwd)"
 
 echo "[?] Uninstall Vaultpass? (Y/n): "
