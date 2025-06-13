@@ -27,6 +27,8 @@ if not os.path.exists(CONFIG_FILE):
     with open(CONFIG_FILE, "w") as f:
         f.write(DEFAULT_CONFIG)
 
+# Healing check: If passphrase hash exists but .config says otherwise, auto-repair config
+HASH_FILE = os.path.join(SYSTEM_DIR, "passphrase_hash.txt")
 def load_config():
     config = {}
     with open(CONFIG_FILE, "r") as f:
@@ -35,6 +37,22 @@ def load_config():
                 k, v = line.strip().split('=', 1)
                 config[k] = v
     return config
+
+def heal_config():
+    config = load_config()
+    if os.path.exists(HASH_FILE):
+        changed = False
+        if config.get('encryption') != 'on':
+            config['encryption'] = 'on'
+            changed = True
+        if config.get('passphrase_set') != 'yes':
+            config['passphrase_set'] = 'yes'
+            changed = True
+        if changed:
+            with open(CONFIG_FILE, "w") as f:
+                for k, v in config.items():
+                    f.write(f"{k}={v}\n")
+heal_config()
 
 def get_current_version():
     if os.path.exists(VERSION_FILE):
