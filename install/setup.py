@@ -120,8 +120,8 @@ def main():
             f.write(str(int(time.time())))
 
     print("[✓] Vaultpass installed successfully.")
-    print("[!] Run 'vaultpass -h' to begin.")
     show_changelog()
+    print("[!] Run 'vaultpass -h' to begin.")
 
 if __name__ == "__main__":
     main()
