@@ -104,7 +104,7 @@ def show_changelog():
         with open(changelog_file) as f:
             lines = f.readlines()
         print("[*] Recent changes:\n\n" + "".join(lines[:15]))
-        print("[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
+        print("[*] Full changelog: https://github.com/looneytkp/vaultpass")
 
 def main():
     ensure_python3()
