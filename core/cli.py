@@ -1,9 +1,9 @@
+# core/cli.py
 import sys
 import textwrap
 
 # -------- Banner generator --------
 def make_centered_banner(_=None):
-    """Return ASCII banner string for Vaultpass (centered)."""
     width = 37
     line1 = "VAULTPASS"
     line2 = "Secure Password Manager"
@@ -19,7 +19,6 @@ def make_centered_banner(_=None):
     return "\n" + "\n".join([top, mid1, mid2, bot]) + "\n"
 
 def show_banner(version=None):
-    """Print the Vaultpass banner."""
     print(make_centered_banner())
 
 # -------- Help/usage --------
@@ -78,7 +77,6 @@ def print_changelog_box(version, lines, width=55):
     print("   └" + "─" * width + "┘")
 
 def show_changelog(version, lines):
-    """Show banner, changelog box, and link."""
     show_banner()
     if not lines:
         print("[!] No changelog found for this version.")
@@ -86,55 +84,123 @@ def show_changelog(version, lines):
     print_changelog_box(version, lines)
     print("\n[*] Full changelog: https://github.com/looneytkp/vaultpass\n")
 
-# ------- CLI dispatcher -------
+# ------- CLI dispatcher (all logic hooked up) -------
 def run_cli():
+    import vault
+    import password_gen
+    import changelog
+    import update
+    import os
+
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         show_help()
+        return
     elif args[0] in ("-a", "--about"):
         show_features()
-    elif args[0] in ("--changelog",):
-        show_banner()
-        print("Changelog coming soon!\n")
-    elif args[0] in ("--log",):
-        show_banner()
-        print("Log viewer coming soon!\n")
+        return
+    elif args[0] == "--changelog":
+        # Get current version
+        version = ""
+        version_file = os.path.expanduser("~/.vaultpass/system/version.txt")
+        if os.path.exists(version_file):
+            with open(version_file) as f:
+                version = f.read().strip()
+        lines = []
+        changelog_file = os.path.expanduser("~/.vaultpass/system/changelog.txt")
+        if os.path.exists(changelog_file):
+            lines = changelog.get_latest_changelog(changelog_file, version)
+        show_changelog(version, lines)
+        return
+    elif args[0] == "--log":
+        log_file = os.path.expanduser("~/.vaultpass/system/vaultpass.log")
+        if os.path.exists(log_file):
+            with open(log_file) as f:
+                print(f.read())
+        else:
+            print("[!] Log file not found.")
+        return
     elif args[0] in ("--update",):
-        show_banner()
-        print("Update checker coming soon!\n")
+        # Manual update check
+        version_file = os.path.expanduser("~/.vaultpass/system/version.txt")
+        changelog_file = os.path.expanduser("~/.vaultpass/system/changelog.txt")
+        install_dir = os.path.expanduser("~/.vaultpass")
+        core_dir = os.path.expanduser("~/.vaultpass/core")
+        bin_path = os.path.expanduser("~/.local/bin/vaultpass")
+        last_update_file = os.path.expanduser("~/.vaultpass/system/.last_update_check")
+        remote_version_url = "https://raw.githubusercontent.com/looneytkp/vaultpass/main/version.txt"
+        update.check_for_updates(
+            current_version=open(version_file).read().strip() if os.path.exists(version_file) else "0.0.0",
+            version_file=version_file,
+            changelog_file=changelog_file,
+            install_dir=install_dir,
+            core_dir=core_dir,
+            bin_path=bin_path,
+            last_update_file=last_update_file,
+            remote_version_url=remote_version_url
+        )
+        return
     elif args[0] in ("-b", "--backup"):
-        show_banner()
-        print("Backup feature coming soon!\n")
+        vault.backup_passwords()
+        return
     elif args[0] in ("-r", "--restore"):
-        show_banner()
-        print("Restore feature coming soon!\n")
+        vault.restore_passwords()
+        return
     elif args[0] in ("-L", "--list"):
-        show_banner()
-        print("Password listing coming soon!\n")
+        vault.list_passwords()
+        return
     elif args[0] in ("-S", "--search"):
-        show_banner()
-        print("Password search coming soon!\n")
-    elif args[0] in ("-l", "--long"):
-        show_banner()
-        print("Long password generation coming soon!\n")
-    elif args[0] in ("-s", "--short"):
-        show_banner()
-        print("Short password generation coming soon!\n")
-    elif args[0] in ("-c", "--custom"):
-        show_banner()
-        print("Custom password saving coming soon!\n")
+        if len(args) > 1:
+            for search_id in args[1:]:
+                vault.search_password(search_id)
+        else:
+            print("[!] Please provide an ID to search.")
+        return
     elif args[0] in ("-d", "--delete"):
-        show_banner()
-        print("Password delete coming soon!\n")
+        if len(args) > 1:
+            for del_id in args[1:]:
+                vault.delete_password(del_id)
+        else:
+            print("[!] Please provide an ID to delete.")
+        return
     elif args[0] in ("-e", "--edit"):
-        show_banner()
-        print("Edit entry coming soon!\n")
-    elif args[0] in ("--change-passphrase",):
-        show_banner()
-        print("Passphrase change coming soon!\n")
+        if len(args) > 1:
+            vault.edit_entry(args[1])
+        else:
+            print("[!] Please provide an ID to edit.")
+        return
+    elif args[0] == "--change-passphrase":
+        vault.change_passphrase()
+        return
+    elif args[0] in ("-l", "--long"):
+        if len(args) > 1:
+            for save_id in args[1:]:
+                vault.generate_and_save_password(save_id, length="long")
+        else:
+            print("[!] Please provide an ID.")
+        return
+    elif args[0] in ("-s", "--short"):
+        if len(args) > 1:
+            for save_id in args[1:]:
+                vault.generate_and_save_password(save_id, length="short")
+        else:
+            print("[!] Please provide an ID.")
+        return
+    elif args[0] in ("-c", "--custom"):
+        if len(args) > 1:
+            for save_id in args[1:]:
+                vault.save_custom_password(save_id)
+        else:
+            print("[!] Please provide an ID.")
+        return
     elif args[0] in ("-u", "--uninstall"):
-        show_banner()
-        print("Uninstall feature coming soon!\n")
+        uninstall_path = os.path.expanduser("~/.vaultpass/install/uninstall.py")
+        if os.path.exists(uninstall_path):
+            import subprocess
+            subprocess.run(["python3", uninstall_path])
+        else:
+            print("[!] Uninstall script not found.")
+        return
     else:
-        show_banner()
-        print(f"[X] Unknown option: {args[0]}\nRun 'vaultpass -h' for help.\n")
+        show_help()
+        return
