@@ -46,17 +46,18 @@ def sanitize(s):
     return s.replace("|", "_").replace("\n", " ").strip()
 
 def require_passphrase_setup():
+    from cli import show_banner  # local import to avoid circular
+
     config = load_config()
     enc_state = config.get('encryption', 'off')
     passphrase_state = config.get('passphrase_set', 'no')
 
-    # 1. No encryption requested (by config)
-    if enc_state == "off" or passphrase_state == "no":
+    if enc_state == "off":
         print("[!] No encryption enabled. Proceeding without passphrase.")
         return False
 
-    # 2. Passphrase not set yet, prompt for setup
-    if not os.path.isfile(HASH_FILE):
+    # If encryption is ON, but passphrase isn't set, prompt!
+    if passphrase_state == "no" or not os.path.isfile(HASH_FILE):
         show_banner()
         print("[!] You must set a master passphrase.")
         print("  - This passphrase protects all your saved passwords.")
@@ -86,7 +87,7 @@ def require_passphrase_setup():
         print("[*] Passphrase and hint saved.")
         return True
 
-    # 3. Passphrase is set, show hint, prompt for passphrase
+    # Existing passphrase
     hint = ""
     if os.path.isfile(HINT_FILE):
         with open(HINT_FILE) as f:
